@@ -1,6 +1,6 @@
 ---
 title: SMTP
- description: Simple Mail Transfer Protocol reference for message submission and server-to-server email transport.
+description: Simple Mail Transfer Protocol reference for message submission and server-to-server email transport.
 section: Reference
 tags: [SMTP, Transport]
 ---
