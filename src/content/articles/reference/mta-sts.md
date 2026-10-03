@@ -1,10 +1,24 @@
 ---
 title: MTA-STS
-description: Policy-based enforcement of authenticated TLS for inbound SMTP.
+description: A policy mechanism for requiring authenticated TLS when other mail servers deliver to your MX hosts.
 section: Reference
-tags: [TLS, MTA-STS]
+tags: [MTA-STS, TLS, SMTP]
 ---
 
-MTA-STS lets a receiving domain tell supporting senders to require authenticated TLS when delivering to designated MX hosts. Deployment combines a DNS discovery record with an HTTPS-hosted policy.
+SMTP normally attempts TLS opportunistically. MTA-STS lets a receiving domain publish a policy telling supporting senders to require valid TLS and deliver only to expected MX hosts.
 
-Enforcement should follow testing. Certificate, HTTPS or MX-policy mistakes can interfere with delivery from senders that honor the policy.
+It uses two pieces:
+
+1. A DNS TXT record under `_mta-sts` that signals the current policy ID.
+2. An HTTPS policy hosted at `mta-sts.example.com/.well-known/mta-sts.txt`.
+
+## Modes
+
+A policy can be `none`, `testing` or `enforce`. Testing is useful before enforcement because a bad MX pattern, certificate problem or unavailable policy host can otherwise become a delivery problem.
+
+TLS-RPT pairs well with MTA-STS by providing aggregate reports about transport failures.
+
+## Reference material
+
+- [RFC 8461 — SMTP MTA Strict Transport Security (MTA-STS)](https://www.rfc-editor.org/rfc/rfc8461)
+- [RFC 8460 — SMTP TLS Reporting](https://www.rfc-editor.org/rfc/rfc8460)

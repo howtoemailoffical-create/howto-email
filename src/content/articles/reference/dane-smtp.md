@@ -1,10 +1,17 @@
 ---
 title: DANE for SMTP
-description: Using DNSSEC-backed TLSA records to authenticate SMTP TLS.
+description: DNSSEC-backed TLSA records can authenticate SMTP TLS without relying solely on the public CA model.
 section: Reference
-tags: [DANE, TLS, DNSSEC]
+tags: [DANE, TLS, DNSSEC, SMTP]
 ---
 
-DANE for SMTP uses DNSSEC-authenticated TLSA records to associate mail services with TLS credentials or keys. Unlike MTA-STS, its trust model depends on DNSSEC rather than an HTTPS policy channel.
+DANE for SMTP lets a receiving domain publish TLSA records that sending MTAs can authenticate through DNSSEC. Those records describe acceptable TLS credentials or keys for the MX service.
 
-Operational deployment requires correct DNSSEC, TLSA publication and key/certificate lifecycle management.
+The trust path is different from MTA-STS. DANE depends on correctly deployed DNSSEC and TLSA data; MTA-STS discovers policy through DNS but retrieves its enforceable policy over HTTPS.
+
+DANE can provide strong downgrade resistance, but DNSSEC, certificate/key rotation and TLSA lifecycle all become production dependencies.
+
+## Reference material
+
+- [RFC 7672 — SMTP Security via Opportunistic DANE TLS](https://www.rfc-editor.org/rfc/rfc7672)
+- [RFC 6698 — The TLSA DNS Resource Record](https://www.rfc-editor.org/rfc/rfc6698)

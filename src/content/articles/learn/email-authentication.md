@@ -1,21 +1,39 @@
 ---
 title: Email authentication
-description: Understand what SPF, DKIM and DMARC each prove and why they work better together.
+description: How SPF, DKIM and DMARC work together without pretending they solve the same problem.
 section: Learn
-tags: [SPF, DKIM, DMARC]
+tags: [SPF, DKIM, DMARC, Security]
 ---
-Email authentication is a set of controls used to make domain impersonation harder and give receivers better evidence when evaluating messages.
 
-## SPF
+SPF, DKIM and DMARC get grouped together so often that it is easy to treat them like three versions of the same control. They are not.
 
-SPF publishes which systems are authorized to send using a domain in the SMTP envelope. It is useful, but forwarding can break the path SPF evaluates.
+**SPF** checks whether a connecting source is authorized for an SMTP domain. **DKIM** verifies a cryptographic signature associated with a signing domain. **DMARC** asks whether a passing SPF or DKIM identity aligns with the domain people actually see in the From header.
 
-## DKIM
+## One message, several identities
 
-DKIM adds a cryptographic signature to a message. The receiver retrieves the public key from DNS and verifies that the signed portions of the message have not been modified.
+Imagine a service sends:
 
-## DMARC
+```text
+From: Billing <billing@example.com>
+Return-Path: bounce@mailer.vendor.example
+DKIM-Signature: ... d=example.com; s=mail1; ...
+```
 
-DMARC connects authentication to the domain visible to the user in the From header. It checks alignment with SPF and/or DKIM and lets the domain owner publish handling policy and request reports.
+SPF might pass for `mailer.vendor.example` but not align with `example.com`. DKIM can still give DMARC a passing path if the `example.com` signature validates.
 
-A mature deployment treats the three as related controls rather than three unrelated DNS records.
+That is why checking only for `spf=pass` is not enough when you are troubleshooting DMARC.
+
+## Where forwarding gets messy
+
+A forwarder becomes the new SMTP source, which commonly breaks SPF for the original envelope domain. DKIM can survive forwarding as long as the signed content is not changed. ARC and SRS can help intermediaries with different pieces of the forwarding problem.
+
+## Authentication is identity, not intent
+
+An attacker using a compromised legitimate mailbox may send messages that authenticate perfectly. Treat authentication as an important identity signal, not proof that a message is trustworthy.
+
+## Reference material
+
+- [RFC 7208 — SPF](https://www.rfc-editor.org/rfc/rfc7208)
+- [RFC 6376 — DKIM](https://www.rfc-editor.org/rfc/rfc6376)
+- [RFC 7489 — DMARC](https://www.rfc-editor.org/rfc/rfc7489)
+- [Microsoft — How email authentication works in Microsoft 365](https://learn.microsoft.com/en-us/defender-office-365/email-authentication-about)
