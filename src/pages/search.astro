@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+const articles = await getCollection('articles');
+const index = articles.map(a => ({
+  title:a.data.title, description:a.data.description, section:a.data.section,
+  tags:a.data.tags, url:'/'+a.id+'/', text:a.body.slice(0,5000)
+}));
+---
+<Base title="Search | howto.email" description="Search the howto.email knowledge base.">
+<div class="wrap page search-page">
+<p class="kicker">SEARCH</p><h1>Find the thing you need.</h1>
+<p class="lead">Search protocols, records, headers, security controls, troubleshooting procedures and implementation guides.</p>
+<div class="big-search"><span aria-hidden="true">⌕</span><label class="sr-only" for="search-input">Search documentation</label><input id="search-input" type="search" placeholder="Try “DMARC alignment”, “550”, “STARTTLS”..." autocomplete="off" autofocus/><kbd>/</kbd></div>
+<div class="search-filters" aria-label="Filter search results"><button class="filter active" data-section="All">All</button><button class="filter" data-section="Learn">Learn</button><button class="filter" data-section="Reference">Reference</button><button class="filter" data-section="Do">Do</button></div>
+<p id="search-status" class="search-status" aria-live="polite">Start typing to search the knowledge base.</p><div id="search-results" class="search-results"></div>
+</div>
+<script type="application/json" id="search-data" set:html={JSON.stringify(index).replace(/</g,'\\u003c')}></script>
+<script>
+const data=JSON.parse(document.getElementById('search-data').textContent||'[]');
+const input=document.getElementById('search-input'), results=document.getElementById('search-results'), status=document.getElementById('search-status');
+let section='All';
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function score(a,terms){
+ const title=a.title.toLowerCase(), desc=a.description.toLowerCase(), tags=a.tags.join(' ').toLowerCase(), text=a.text.toLowerCase();
+ let n=0; for(const t of terms){if(title===t)n+=30;if(title.includes(t))n+=14;if(tags.includes(t))n+=9;if(desc.includes(t))n+=6;if(text.includes(t))n+=2;} return n;
+}
+function run(){
+ const q=input.value.trim().toLowerCase(), terms=q.split(/\s+/).filter(Boolean);
+ if(!terms.length){results.innerHTML='';status.textContent='Start typing to search the knowledge base.';return;}
+ const found=data.filter(a=>(section==='All'||a.section===section)&&terms.every(t=>(a.title+' '+a.description+' '+a.tags.join(' ')+' '+a.text).toLowerCase().includes(t))).map(a=>({...a,score:score(a,terms)})).sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title)).slice(0,30);
+ status.textContent=found.length?found.length+' result'+(found.length===1?'':'s')+' shown for “'+q+'”.':'No matches for “'+q+'”. Try a protocol, DNS record, error code or broader term.';
+ results.innerHTML=found.map(a=>`<a class="search-result" href="${a.url}"><div><span class="result-section">${esc(a.section)}</span><h2>${esc(a.title)}</h2><p>${esc(a.description)}</p><div class="result-tags">${a.tags.slice(0,4).map(t=>'<span>'+esc(t)+'</span>').join('')}</div></div><b aria-hidden="true">→</b></a>`).join('');
+}
+input.addEventListener('input',run);
+document.querySelectorAll('.filter').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');section=b.dataset.section;run();input.focus();}));
+document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==input){e.preventDefault();input.focus();}});
+</script>
+</Base>
