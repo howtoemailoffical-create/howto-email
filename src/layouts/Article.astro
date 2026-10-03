@@ -1,0 +1,5 @@
+---
+import Base from './Base.astro';
+const { title, description, section, tags=[] } = Astro.props;
+---
+<Base title={title + ' | howto.email'} description={description}><div class="wrap page article"><p><a href={'/'+section.toLowerCase()+'/'}>{section}</a></p><h1>{title}</h1><p class="lead">{description}</p>{tags.length>0 && <p>{tags.map((tag:string)=><span class="eyebrow">{tag}</span>)}</p>}<hr/><slot /></div></Base>
