@@ -1,10 +1,23 @@
 ---
 title: Plus addressing
-description: Subaddressing patterns such as user+tag@example.com.
+description: Using a tag in the local part of an address for routing or organization.
 section: Reference
-tags: [Addressing, Mailbox]
+tags: [Addressing, Mailbox, Applications]
 ---
 
-Subaddressing lets a local mailbox interpret an address extension, commonly written as `user+tag@example.com`. The exact delimiter and behavior are provider-specific.
+Some mail systems support tagged addresses such as:
 
-It is useful for filtering and tracking address use, but applications should not assume every domain or mailbox provider supports it.
+```text
+alice+receipts@example.com
+```
+
+The receiving system can deliver that address to Alice while exposing the tag for filtering or application use.
+
+Plus addressing is common but should not be assumed to work identically on every provider or application. Some websites incorrectly reject valid address syntax or normalize addresses in their own way.
+
+Do not use plus tags as an authentication secret.
+
+## Reference material
+
+- [RFC 5233 — Sieve Email Filtering: Subaddress Extension](https://www.rfc-editor.org/rfc/rfc5233)
+- [RFC 5321 — Mailbox syntax](https://www.rfc-editor.org/rfc/rfc5321)
