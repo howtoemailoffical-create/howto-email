@@ -1,4 +1,20 @@
 ---
 import Base from '../layouts/Base.astro';
 ---
-<Base title="Disclaimer | howto.email"><div class="wrap page article"><h1>Disclaimer</h1><p>The material on howto.email is provided for educational and informational purposes. Email systems differ, standards evolve, and production changes can affect mail flow. Validate configuration changes in the context of your own environment before deployment.</p><p>References to vendors or products are informational and do not imply endorsement.</p></div></Base>
+<Base title="Disclaimer | howto.email" description="Important limitations and usage information for howto.email documentation and diagnostic tools.">
+<div class="wrap page article">
+<h1>Disclaimer</h1>
+<p><strong>Last updated: October 3, 2026</strong></p>
+<p>howto.email provides technical documentation and diagnostic tools for educational, informational, and troubleshooting purposes. Email systems differ, standards and provider behavior change, and production configuration changes can interrupt mail flow. Validate changes against your own requirements and test them before production deployment.</p>
+<h2>Domain Check results</h2>
+<p>Domain Check is a point-in-time inspection of public configuration. DNS caching, propagation, resolver behavior, third-party service availability, and scanner limitations can affect what is observed. A passing result does not guarantee delivery, inbox placement, security, or correct authentication of every real message.</p>
+<p>Some checks have inherent limits. For example, DKIM selectors are not globally enumerable, so selector discovery cannot prove that every selector used by a domain has been found. DNS records alone also cannot prove that a real message will achieve SPF or DKIM alignment for DMARC.</p>
+<h2>Findings and suggested actions</h2>
+<p>Warnings and suggested improvements are based on the configuration visible to the tool and general email standards or operational practices. They should be treated as diagnostic guidance, not as an instruction to change production systems without review. Optional technologies such as BIMI or MTA-STS are identified as optional and their absence does not by itself mean email is broken.</p>
+<h2>Third-party data</h2>
+<p>Some Domain Check data is provided by dmarc.mx and public DNS services. howto.email formats and interprets that information but cannot guarantee the completeness, continued availability, or accuracy of third-party results.</p>
+<h2>No professional or service guarantee</h2>
+<p>Content on howto.email is not legal advice, a compliance certification, a security assessment, or a guarantee of deliverability or service availability. Where legal, regulatory, contractual, or high-impact security requirements apply, use appropriately qualified review for that environment.</p>
+<h2>Vendor references</h2>
+<p>References to vendors, products, standards bodies, or external services are informational and do not imply endorsement, sponsorship, or affiliation unless explicitly stated.</p>
+</div></Base>

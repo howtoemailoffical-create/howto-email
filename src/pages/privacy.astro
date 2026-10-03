@@ -1,4 +1,20 @@
 ---
 import Base from '../layouts/Base.astro';
 ---
-<Base title="Privacy | howto.email"><div class="wrap page article"><h1>Privacy</h1><p>howto.email does not require an account to read its documentation.</p><h2>Domain Check</h2><p>When you use Domain Check, the domain name you submit is sent through howto.email's Cloudflare Worker to the dmarc.mx lookup service so its public email configuration can be analyzed. The tool is intended only for public DNS and email-policy information. Do not submit credentials, private information, or secrets.</p><p>Successful lookup responses may be cached temporarily at Cloudflare's edge to reduce repeated upstream requests. howto.email does not currently provide user accounts or a saved lookup-history feature.</p><h2>Changes</h2><p>If analytics, persistent history, accounts, or other interactive services are added later, this notice will be updated to describe the data involved.</p></div></Base>
+<Base title="Privacy | howto.email" description="Privacy information for howto.email documentation and interactive tools.">
+<div class="wrap page article">
+<h1>Privacy</h1>
+<p><strong>Last updated: October 3, 2026</strong></p>
+<p>howto.email does not require an account to read its documentation or use the current Domain Check tool.</p>
+<h2>Domain Check</h2>
+<p>When you use Domain Check, the domain name you submit is sent to a howto.email Cloudflare Worker. The Worker requests public email-configuration information from the open-source dmarc.mx lookup service. For some results, such as retrieving a literal DKIM record for a selector discovered by the scanner, the Worker may also perform targeted public DNS lookups.</p>
+<p>The tool is designed for information that is already publicly available through DNS and published email-policy endpoints. Do not enter passwords, credentials, private keys, API keys, personal information, or other secrets.</p>
+<h2>Caching and lookup history</h2>
+<p>Successful Domain Check responses may be cached temporarily at Cloudflare's edge to reduce duplicate upstream requests and unnecessary load. howto.email does not currently provide user accounts or a persistent lookup-history feature.</p>
+<h2>Reports, copying, and printing</h2>
+<p>Domain Check reports are generated in your browser from the scan results already returned to the page. Copying records, downloading the interactive HTML report, and printing or saving that report as a PDF do not intentionally submit a new Domain Check request. A downloaded report contains the lookup information visible in that report, so treat the file according to your own organization's handling requirements.</p>
+<h2>Third-party infrastructure</h2>
+<p>howto.email currently relies on Cloudflare for site and Worker infrastructure and dmarc.mx for portions of Domain Check analysis. Requests handled by those services may be subject to their own operational logging and privacy practices.</p>
+<h2>Future changes</h2>
+<p>If analytics, persistent history, accounts, additional third-party services, or other data-collecting features are introduced, this notice should be updated to describe them.</p>
+</div></Base>

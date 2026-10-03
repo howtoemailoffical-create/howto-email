@@ -1,4 +1,18 @@
 ---
 import Base from '../layouts/Base.astro';
 ---
-<Base title="Accessibility | howto.email"><div class="wrap page article"><h1>Accessibility</h1><p>howto.email aims to make its technical documentation usable with keyboards, screen readers, zoom, and common assistive technologies. The site uses semantic structure, visible focus behavior, text alternatives where applicable, and responsive layouts.</p><p>Accessibility is an ongoing maintenance requirement, especially as new interactive tools are introduced.</p></div></Base>
+<Base title="Accessibility | howto.email" description="Accessibility approach and current considerations for howto.email.">
+<div class="wrap page article">
+<h1>Accessibility</h1>
+<p><strong>Last updated: October 3, 2026</strong></p>
+<p>howto.email aims to make its documentation and tools usable with keyboards, screen readers, browser zoom, and common assistive technologies. Accessibility is treated as an ongoing part of development rather than a one-time certification.</p>
+<h2>Site design</h2>
+<p>The site uses semantic HTML where practical, heading structure, keyboard-accessible controls, visible focus states, descriptive labels, responsive layouts, and text that can reflow as the page is enlarged. Important Domain Check states such as pass, warning, error, and optional are identified with text rather than color alone.</p>
+<h2>Interactive tools</h2>
+<p>Domain Check uses native form controls and expandable sections for detailed records and technical information. Results are presented in text, and copy/download actions are labeled. The action checklist uses a CSS-drawn visual box instead of relying on a font-specific symbol.</p>
+<h2>Downloaded reports</h2>
+<p>The downloadable HTML report retains expandable sections and other useful controls where browser support permits. Its print stylesheet expands technical content, improves contrast for paper, wraps long DNS records, and removes controls that are not meaningful in a static PDF.</p>
+<h2>Known considerations</h2>
+<p>Very long DNS records, deeply nested SPF include trees, raw JSON, browser-generated PDF output, and third-party/browser behavior can create accessibility challenges. These areas should continue to be tested as the tools evolve.</p>
+<p>No statement on this page should be read as a guarantee that every page, browser combination, downloaded report, or third-party component will satisfy every accessibility standard or individual need.</p>
+</div></Base>
