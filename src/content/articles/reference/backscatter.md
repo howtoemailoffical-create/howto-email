@@ -1,10 +1,21 @@
 ---
 title: Backscatter
-description: Unwanted non-delivery reports generated for forged sender addresses.
+description: Why generating bounces to forged sender addresses can make your mail system part of an abuse problem.
 section: Reference
-tags: [Abuse, Bounces]
+tags: [Bounces, Abuse, SMTP]
 ---
 
-Backscatter occurs when a system accepts a message and later sends a bounce to a forged envelope sender. The innocent forged address receives the unwanted notification.
+Backscatter happens when a system accepts a message and later sends a non-delivery message to an address that was forged as the sender.
 
-Where possible, reject clearly unacceptable mail during the SMTP transaction instead of accepting it and generating a later DSN to an unverified sender.
+The innocent forged address receives a bounce for mail it never sent.
+
+## Prefer rejection during SMTP
+
+When possible, reject clearly unacceptable recipients or messages during the SMTP transaction. The connecting sender then owns notification behavior.
+
+After accepting responsibility for a message, delivery failures have different semantics, which is why careful acceptance policy matters.
+
+## Reference material
+
+- [RFC 5321 — SMTP delivery responsibility and notifications](https://www.rfc-editor.org/rfc/rfc5321)
+- [RFC 3464 — Delivery Status Notifications](https://www.rfc-editor.org/rfc/rfc3464)

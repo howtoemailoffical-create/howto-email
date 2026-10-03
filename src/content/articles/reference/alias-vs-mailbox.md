@@ -1,10 +1,19 @@
 ---
-title: Alias vs mailbox vs distribution list
-description: Common recipient objects and how their behavior differs.
+title: Alias vs mailbox
+description: An address that redirects mail is not the same thing as a mailbox that stores it.
 section: Reference
-tags: [Mailbox, Architecture]
+tags: [Mailbox, Addressing, Routing]
 ---
 
-A mailbox stores mail for an identity. An alias maps another address to a target without necessarily having its own mailbox. A distribution list or group expands a recipient into multiple members according to list policy.
+A mailbox stores messages for access by a user or application.
 
-Exact terminology differs by provider, so migrations should inventory behavior rather than relying only on object names.
+An alias is an additional address that routes to another destination. It normally does not have independent storage or credentials.
+
+A distribution group/list is different again: one incoming recipient can expand to multiple members.
+
+Knowing which object owns an address matters during migrations, access reviews and troubleshooting.
+
+## Reference material
+
+- [RFC 5321 — SMTP mailbox model](https://www.rfc-editor.org/rfc/rfc5321)
+- [RFC 5598 — Internet Mail Architecture](https://www.rfc-editor.org/rfc/rfc5598)

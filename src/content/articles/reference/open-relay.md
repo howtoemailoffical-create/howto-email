@@ -1,10 +1,17 @@
 ---
-title: Open relay
-description: What makes an SMTP relay open and why it is dangerous.
+title: Open SMTP relays
+description: Why unrestricted third-party relay is an abuse and reputation disaster.
 section: Reference
-tags: [SMTP, Security]
+tags: [SMTP, Security, Relay]
 ---
 
-An open relay allows unauthorized clients to submit mail for arbitrary external recipients. Attackers abuse open relays for spam and phishing, quickly damaging reputation and creating operational load.
+An open relay lets unauthenticated or unauthorized third parties use a mail server to send onward to unrelated destinations.
 
-A relay should authorize sending through authentication, tightly controlled network sources, connector identity or another explicit trust mechanism.
+That makes the infrastructure useful to spammers and can quickly damage IP/domain reputation.
+
+A public MX must accept inbound mail **for domains it serves**. That is not the same as relaying arbitrary mail from anybody to anybody.
+
+## Reference material
+
+- [RFC 5321 — SMTP relay](https://www.rfc-editor.org/rfc/rfc5321)
+- [RFC 6409 — Message Submission](https://www.rfc-editor.org/rfc/rfc6409)
