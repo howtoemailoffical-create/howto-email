@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+const terms=[
+['Alignment','For DMARC, whether the authenticated SPF or DKIM domain aligns with the visible From domain.','/reference/dmarc-alignment/'],
+['ARC','Authenticated Received Chain; preserves authentication assessment information across intermediaries.','/reference/arc/'],
+['DKIM','DomainKeys Identified Mail; a cryptographic signature applied to a message by a signing domain.','/reference/dkim/'],
+['DMARC','A policy and reporting layer built on aligned SPF and/or DKIM authentication.','/reference/dmarc/'],
+['DSN','Delivery Status Notification; structured information about delivery success or failure.','/reference/dsn/'],
+['EHLO','The ESMTP greeting a client uses to identify itself and discover server extensions.','/reference/ehlo-identity/'],
+['Envelope sender','The SMTP MAIL FROM identity used for delivery status handling and SPF evaluation.','/reference/envelope-vs-header/'],
+['MTA','Mail Transfer Agent; software that transfers messages using SMTP.','/reference/smtp/'],
+['MTA-STS','A domain policy that tells supporting senders to require valid TLS when delivering to listed MX hosts.','/reference/mta-sts/'],
+['MX','DNS Mail Exchanger record identifying hosts that accept mail for a domain.','/reference/mx/'],
+['NDR','Non-delivery report; a message describing why delivery failed.','/reference/dsn/'],
+['PTR','Reverse-DNS record mapping an IP address back to a hostname.','/reference/ptr/'],
+['Selector','A DKIM label used to locate a signing domain’s public key in DNS.','/reference/dkim-key-record/'],
+['Smarthost','An SMTP relay used by another system as its next hop for outbound delivery.','/do/secure-smtp-relay/'],
+['SPF','Sender Policy Framework; authorizes hosts to use a domain in the SMTP envelope identity.','/reference/spf/'],
+['STARTTLS','SMTP extension used to upgrade an existing connection to TLS.','/reference/starttls/'],
+['TLS-RPT','SMTP TLS reporting, used to receive aggregate reports about transport-security failures.','/reference/tls-rpt/']
+];
+---
+<Base title="Email glossary | howto.email" description="Plain-language definitions of common email infrastructure, security, DNS, and deliverability terms."><div class="wrap page article"><p class="kicker">GLOSSARY</p><h1>Email terms without the guesswork</h1><p>Short definitions for terminology used throughout howto.email. Follow a term for the full technical reference.</p>{terms.map(([term,definition,url])=><section><h2>{term}</h2><p>{definition} <a href={url}>Read more →</a></p></section>)}</div></Base>
