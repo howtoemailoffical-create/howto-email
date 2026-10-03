@@ -1,0 +1,6 @@
+---
+import '../styles/global.css';
+const { title='howto.email', description='A free, vendor-neutral technical reference for email infrastructure.' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width"/><meta name="description" content={description}/><link rel="canonical" href={canonical}/><link rel="icon" href="/favicon.svg"/><title>{title}</title></head><body><a class="skip" href="#main">Skip to content</a><header class="site-header"><nav class="wrap nav" aria-label="Main navigation"><a class="brand" href="/">howto.<span>email</span></a><a href="/learn/">Learn</a><a href="/reference/">Reference</a><a href="/do/">Do</a><a href="/topics/">Topics</a><a href="https://github.com/howtoemailoffical-create/howto-email">GitHub</a></nav></header><main id="main"><slot /></main><footer class="site-footer"><div class="wrap footer-row"><span>howto.email — free, vendor-neutral email documentation.</span><a href="/about/">About</a><a href="/privacy/">Privacy</a><a href="/accessibility/">Accessibility</a><a href="/disclaimer/">Disclaimer</a></div></footer></body></html>
