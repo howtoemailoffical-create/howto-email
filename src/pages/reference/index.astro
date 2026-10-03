@@ -1,0 +1,4 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Email reference | howto.email"><div class="wrap page"><h1>Reference</h1><p class="lead">Fast technical references for the protocols and controls that make email work.</p><div class="grid">{[['SMTP','smtp'],['SPF','spf'],['DKIM','dkim'],['DMARC','dmarc']].map(([name,slug])=><a class="card" href={'/reference/'+slug+'/'}><h2>{name}</h2><p>Technical reference and operational notes.</p></a>)}</div></div></Base>
