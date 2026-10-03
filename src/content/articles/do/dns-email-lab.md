@@ -1,5 +1,5 @@
 ---
-title: Lab: trace email DNS by hand
+title: "Lab: trace email DNS by hand"
 description: Walk from a domain to its MX, addresses, SPF, DMARC and DKIM records.
 section: Do
 tags: [Lab, DNS, Authentication]
