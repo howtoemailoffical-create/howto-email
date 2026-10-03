@@ -1,4 +1,6 @@
 ---
+import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+const articles=(await getCollection('articles')).filter(a=>a.data.section==='Reference').sort((a,b)=>a.data.title.localeCompare(b.data.title));
 ---
-<Base title="Email reference | howto.email"><div class="wrap page"><h1>Reference</h1><p class="lead">Fast technical references for the protocols and controls that make email work.</p><div class="grid">{[['SMTP','smtp'],['SPF','spf'],['DKIM','dkim'],['DMARC','dmarc']].map(([name,slug])=><a class="card" href={'/reference/'+slug+'/'}><h2>{name}</h2><p>Technical reference and operational notes.</p></a>)}</div></div></Base>
+<Base title="Email reference | howto.email" description="Technical references for email protocols, DNS records, authentication standards and operational terminology."><div class="wrap page"><p class="kicker">REFERENCE</p><h1>Look up the exact thing.</h1><p class="lead">Protocol behavior, record syntax, ports, status codes and the details you need when you're already in the middle of the work.</p><div class="article-list">{articles.map(a=><a class="article-row" href={'/'+a.id+'/'}><div><h2>{a.data.title}</h2><p>{a.data.description}</p></div><span>→</span></a>)}</div></div></Base>

@@ -1,4 +1,6 @@
 ---
+import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+const articles=(await getCollection('articles')).filter(a=>a.data.section==='Learn').sort((a,b)=>a.data.title.localeCompare(b.data.title));
 ---
-<Base title="Learn email | howto.email"><div class="wrap page"><h1>Learn</h1><p class="lead">Understand how email works before memorizing individual records and commands.</p><div class="grid"><a class="card" href="/learn/how-email-works/"><h2>How email works</h2><p>Follow a message from sender to recipient.</p></a><a class="card" href="/learn/email-authentication/"><h2>Email authentication</h2><p>Understand SPF, DKIM and DMARC together.</p></a></div></div></Base>
+<Base title="Learn email | howto.email" description="Learn how email infrastructure works from DNS and SMTP through authentication, security and deliverability."><div class="wrap page"><p class="kicker">LEARN</p><h1>Build the mental model.</h1><p class="lead">Start with the concepts. These guides explain how email systems fit together before you get buried in individual records, commands and vendor terminology.</p><div class="article-list">{articles.map(a=><a class="article-row" href={'/'+a.id+'/'}><div><h2>{a.data.title}</h2><p>{a.data.description}</p></div><span>→</span></a>)}</div></div></Base>
