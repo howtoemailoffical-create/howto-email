@@ -1,20 +1,32 @@
 # howto.email
 
-Open-source, vendor-neutral email infrastructure knowledge base built with Astro.
+Free, open-source, vendor-neutral documentation and troubleshooting tools for email infrastructure.
 
-Production URL: https://howto.email
+Production: https://howto.email
+
+## What is here
+
+The knowledge base covers SMTP, DNS, SPF, DKIM, DMARC, TLS, deliverability, security, mailbox protocols, Microsoft 365, Google Workspace, application sending, troubleshooting, and email operations. Interactive tools such as Domain Check connect public configuration findings to the relevant documentation.
 
 ## Development
 
+Requires Node.js 22 or later.
+
 ```bash
-npm install
+npm ci
+npm run validate
+npm run build
 npm run dev
 ```
 
-## Production build
+`npm run validate` performs repository-specific content checks. `npm run build` remains the authoritative Astro production-build check.
 
-```bash
-npm run build
-```
+Cloudflare deploys the static Astro output and Worker/API routes from this repository.
 
-The static build is written to `dist/` and is suitable for Cloudflare deployment.
+## Contributing and security
+
+See `CONTRIBUTING.md` before submitting content or code. See `SECURITY.md` for security-reporting guidance.
+
+## Licensing
+
+Project code is licensed under the MIT License. Original article content is licensed separately under CC BY 4.0; see `CONTENT-LICENSE.md`.

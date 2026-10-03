@@ -9,6 +9,7 @@ const articles = defineCollection({
     section: z.enum(['Learn','Reference','Do']),
     tags: z.array(z.string()).default([]),
     updated: z.coerce.date().optional(),
+    findings: z.array(z.string()).default([]),
   }),
 });
 export const collections = { articles };
