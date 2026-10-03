@@ -19,6 +19,16 @@ for(const file of files){
 const known=new Set([...slugs.keys()].map(s=>'/'+s+'/'));
 function walkPages(dir){if(!fs.existsSync(dir))return;for(const e of fs.readdirSync(dir,{withFileTypes:true})){const p=path.join(dir,e.name);if(e.isDirectory())walkPages(p);else if(/\.astro$/.test(e.name)){const rel=path.relative(pages,p).replaceAll('\\','/').replace(/\.astro$/,'');known.add(rel==='index'?'/':'/'+rel.replace(/\/index$/,'')+'/')}}}
 walkPages(pages);
+// Domain Check recommendations are user-facing navigation and must never silently 404.
+const domainCheck=fs.readFileSync(path.join(root,'src/pages/tools/domain-check.astro'),'utf8');
+const recommendationBlock=domainCheck.match(/const recommendations=({[\\s\\S]*?});\\n---/);
+if(!recommendationBlock)errors.push('Domain Check: recommendation map could not be found for validation');
+else{
+ const routeRe=/['"](\\/(?:learn|reference|do)\\/[^'"]+\\/)['"]/g;
+ for(const m of recommendationBlock[1].matchAll(routeRe)){
+  if(!known.has(m[1]))errors.push(`Domain Check recommendation target not found: ${m[1]}`);
+ }
+}
 const linkRe=/\]\((\/[^)#?]+\/?)(?:[?#][^)]*)?\)|href=["'](\/[^"'#?]+\/?)/g;
 for(const file of files){const rel=path.relative(content,file).replaceAll('\\','/'),text=fs.readFileSync(file,'utf8');for(const m of text.matchAll(linkRe)){let u=m[1]||m[2];if(!u||u.startsWith('/api/'))continue;if(!u.endsWith('/'))u+='/';if(!known.has(u))warnings.push(`${rel}: internal link target not found: ${u}`)}}
 if(warnings.length){console.log('\nWarnings:');warnings.forEach(x=>console.log('  - '+x))}
