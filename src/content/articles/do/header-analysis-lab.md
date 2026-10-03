@@ -1,5 +1,5 @@
 ---
-title: Lab: analyze a message header
+title: "Lab: analyze a message header"
 description: Practice separating transport, authentication and visible message identities.
 section: Do
 tags: [Lab, Headers, Authentication]

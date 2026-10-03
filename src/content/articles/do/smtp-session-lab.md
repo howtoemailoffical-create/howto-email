@@ -1,5 +1,5 @@
 ---
-title: Lab: read an SMTP session
+title: "Lab: read an SMTP session"
 description: Learn the transaction without using somebody else's server as a relay test.
 section: Do
 tags: [Lab, SMTP, Troubleshooting]
