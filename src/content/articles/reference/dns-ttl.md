@@ -1,19 +1,19 @@
 ---
-title: DNS TTL and email changes
-description: Use TTLs deliberately during MX and authentication migrations.
+title: DNS TTLs for email changes
+description: TTL controls cache lifetime, not how quickly every resolver on Earth will update.
 section: Reference
-tags: [DNS, Operations]
+tags: [DNS, Operations, Migration]
 ---
 
-A DNS TTL tells recursive resolvers how long an answer may be cached. Lowering a TTL shortly before a change does not instantly flush answers that were already cached under the old, longer TTL.
+A DNS TTL tells caching resolvers how long an answer may be reused.
 
-## Before a migration
+Lowering a TTL shortly before a cutover does not invalidate copies already cached under the old, longer TTL.
 
-If faster convergence matters, lower the relevant TTL far enough in advance for the previous TTL to age out. After the environment is stable, raise it to a sensible operational value.
+For planned migrations, lower TTL early enough for previous caches to age out.
 
-Do not assume every visible difference during a change is "propagation." Query authoritative servers and compare them with recursive resolvers so you can tell stale cache from incorrect authoritative data.
+After the change, query authoritative DNS to confirm publication and recursive resolvers to understand what clients may still see.
 
 ## Reference material
 
-- [RFC 1034 — Domain Names: Concepts and Facilities](https://www.rfc-editor.org/rfc/rfc1034)
-- [RFC 1035 — Domain Names: Implementation and Specification](https://www.rfc-editor.org/rfc/rfc1035)
+- [RFC 1034 — DNS concepts and caching](https://www.rfc-editor.org/rfc/rfc1034)
+- [RFC 1035 — DNS](https://www.rfc-editor.org/rfc/rfc1035)

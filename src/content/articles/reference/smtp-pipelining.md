@@ -1,15 +1,15 @@
 ---
 title: SMTP PIPELINING
-description: Why some SMTP clients send multiple commands without waiting for each reply.
+description: An ESMTP extension that reduces round trips by allowing commands to be sent without waiting for every reply.
 section: Reference
-tags: [SMTP, ESMTP]
+tags: [SMTP, ESMTP, Performance]
 ---
 
-PIPELINING is an ESMTP extension that lets a client send groups of commands without waiting for an individual reply after every command. This reduces round trips, especially on higher-latency links.
+A server advertising `PIPELINING` allows a client to send certain SMTP commands in groups without waiting for each individual response first.
 
-The server advertises `PIPELINING` in its EHLO response. Clients still have to associate returned replies with the commands in the correct order.
+The client must still correctly match replies to commands and stop where the protocol requires it.
 
-When reading packet captures, a pipelined session can look unusual if you expect strict command-response-command-response behavior.
+PIPELINING improves efficiency on higher-latency links; it does not change relay authorization or message semantics.
 
 ## Reference material
 
