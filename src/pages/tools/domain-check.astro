@@ -1,155 +1,53 @@
 ---
 import Base from '../../layouts/Base.astro';
-
-const recommendations = {
-  dmarc_missing: [
-    ['/reference/dmarc/', 'DMARC reference'],
-    ['/do/publish-dmarc/', 'Publish a DMARC record']
-  ],
-  dmarc_monitoring: [
-    ['/do/move-dmarc-to-reject/', 'Move DMARC toward reject'],
-    ['/reference/dmarc-alignment/', 'DMARC alignment']
-  ],
-  spf_missing: [
-    ['/reference/spf/', 'SPF reference'],
-    ['/do/audit-spf/', 'Audit SPF']
-  ],
-  spf_problem: [
-    ['/do/investigate-spf-permerror/', 'Investigate SPF PermError'],
-    ['/reference/spf-lookup-limit/', 'SPF lookup limit'],
-    ['/do/audit-spf/', 'Audit SPF']
-  ],
-  dkim_missing: [
-    ['/reference/dkim/', 'DKIM reference'],
-    ['/do/audit-dkim-selectors/', 'Audit DKIM selectors']
-  ],
-  mta_sts_missing: [
-    ['/reference/mta-sts/', 'MTA-STS reference'],
-    ['/reference/tls-rpt-record/', 'TLS reporting']
-  ],
-  bimi_missing: [
-    ['/reference/bimi/', 'BIMI reference']
-  ]
+const recommendations={
+ dmarc_missing:[['/reference/dmarc/','DMARC reference'],['/do/publish-dmarc/','Publish DMARC']],
+ dmarc_monitoring:[['/do/move-dmarc-to-reject/','Move DMARC toward reject'],['/reference/dmarc-alignment/','DMARC alignment']],
+ spf_missing:[['/reference/spf/','SPF reference'],['/do/audit-spf/','Audit SPF']],
+ spf_problem:[['/do/investigate-spf-permerror/','Investigate SPF PermError'],['/reference/spf-lookup-limit/','SPF lookup limit'],['/do/audit-spf/','Audit SPF']],
+ spf_limit:[['/reference/spf-lookup-limit/','SPF lookup limit'],['/do/audit-spf/','Audit SPF']],
+ dkim_missing:[['/reference/dkim/','DKIM reference'],['/do/audit-dkim-selectors/','Audit DKIM selectors']],
+ mta_sts_missing:[['/reference/mta-sts/','MTA-STS reference'],['/reference/tls-rpt-record/','TLS reporting']],
+ bimi_missing:[['/reference/bimi/','BIMI reference']]
 };
 ---
 <Base title="Email Domain Check — howto.email" description="Inspect a domain's email authentication and transport-security configuration and get relevant howto.email documentation.">
 <section class="wrap page domain-tool">
-  <p class="kicker">TOOLS / DOMAIN CHECK</p>
-  <h1>Email Domain Check</h1>
-  <p class="lead">Inspect public email configuration, see what deserves attention, and jump directly to documentation explaining it.</p>
-
-  <form id="domain-form" class="domain-form">
-    <label for="domain">Domain name</label>
-    <div class="domain-input-row">
-      <input id="domain" name="domain" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.com" required aria-describedby="domain-help"/>
-      <button type="submit">Analyze domain</button>
-    </div>
-    <p id="domain-help" class="tool-note">Public DNS and policy data only. Do not enter credentials or private information.</p>
-  </form>
-
-  <div id="tool-status" class="tool-status" role="status" aria-live="polite"></div>
-  <section id="results" class="tool-results" hidden aria-labelledby="results-title">
-    <div class="results-heading">
-      <div><p class="kicker">RESULTS</p><h2 id="results-title"></h2></div>
-      <p id="results-counts" class="result-counts"></p>
-    </div>
-    <div id="findings" class="findings"></div>
-    <details class="raw-results"><summary>Technical response</summary><pre><code id="raw-json"></code></pre></details>
-    <p class="tool-attribution">Lookup data is provided by the open-source <a href="https://github.com/schmug/dmarc.mx" rel="noopener noreferrer">dmarc.mx project</a>. howto.email interprets the returned configuration and links it to its own documentation.</p>
-  </section>
+<p class="kicker">TOOLS / DOMAIN CHECK</p><h1>Email Domain Check</h1>
+<p class="lead">Inspect public email configuration, see what deserves attention, view discovered records, and jump directly to documentation explaining it.</p>
+<form id="domain-form" class="domain-form"><label for="domain">Domain name</label><div class="domain-input-row"><input id="domain" name="domain" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.com" required aria-describedby="domain-help"/><button type="submit">Analyze domain</button></div><p id="domain-help" class="tool-note">Public DNS and policy data only. Do not enter credentials or private information.</p></form>
+<div id="tool-status" class="tool-status" role="status" aria-live="polite"></div>
+<section id="results" class="tool-results" hidden aria-labelledby="results-title"><div class="results-heading"><div><p class="kicker">RESULTS</p><h2 id="results-title"></h2></div><p id="results-counts" class="result-counts"></p></div><div id="findings" class="findings"></div><details class="raw-results"><summary>Technical response</summary><div class="raw-actions"><button type="button" class="copy-btn" data-copy-target="raw-json">Copy JSON</button></div><pre><code id="raw-json"></code></pre></details><p class="tool-attribution">Lookup data is provided by the open-source <a href="https://github.com/schmug/dmarc.mx" rel="noopener noreferrer">dmarc.mx project</a>. howto.email interprets the returned configuration and links it to its own documentation.</p></section>
 </section>
-
-<script define:vars={{ recommendations }}>
-const form = document.querySelector('#domain-form');
-const input = document.querySelector('#domain');
-const status = document.querySelector('#tool-status');
-const results = document.querySelector('#results');
-const findings = document.querySelector('#findings');
-const title = document.querySelector('#results-title');
-const counts = document.querySelector('#results-counts');
-const raw = document.querySelector('#raw-json');
-
-const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-function linksFor(key) {
-  return (recommendations[key] || []).map(([href,label]) => `<a href="${href}">${esc(label)} →</a>`).join('');
+<script define:vars={{recommendations}}>
+const form=document.querySelector('#domain-form'),input=document.querySelector('#domain'),status=document.querySelector('#tool-status'),results=document.querySelector('#results'),findings=document.querySelector('#findings'),title=document.querySelector('#results-title'),counts=document.querySelector('#results-counts'),raw=document.querySelector('#raw-json');
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const linksFor=k=>(recommendations[k]||[]).map(([h,l])=>`<a href="${h}">${esc(l)} →</a>`).join('');
+const recordText=v=>typeof v==='string'?v:JSON.stringify(v);
+function collectRecords(data,name){
+ const aliases={DMARC:['dmarc'],SPF:['spf'],DKIM:['dkim'],BIMI:['bimi'], 'MTA-STS':['mta_sts','mta-sts','mtasts']};
+ const keys=aliases[name]||[];
+ const found=[];
+ function walk(obj,path='',depth=0){if(!obj||typeof obj!=='object'||depth>4)return; for(const [k,v] of Object.entries(obj)){const p=path?path+'.'+k:k,lk=k.toLowerCase(); if(keys.some(x=>lk.includes(x))&&(typeof v==='string'||typeof v==='number'||typeof v==='boolean'||Array.isArray(v))) found.push({label:p,value:v}); if(v&&typeof v==='object')walk(v,p,depth+1);}}
+ walk(data);
+ const seen=new Set(); return found.filter(x=>{const t=recordText(x.value);if(!t||seen.has(t))return false;seen.add(t);return true;}).slice(0,12);
 }
-
-function finding(level, name, summary, key, observed='') {
-  return { level, name, summary, key, observed };
+function finding(level,name,summary,key='',improvement=''){return{level,name,summary,key,improvement,records:[]}}
+function lookupCount(v){const m=String(v??'').match(/(\d+)\s*\/\s*10/);if(m)return Number(m[1]);const n=Number(v);return Number.isFinite(n)?n:null}
+function derive(data){
+ const s=data.summary||{},out=[],dmarc=String(s.dmarc_policy||'').toLowerCase(),spf=String(s.spf_result||'').toLowerCase(),dkim=Number(s.dkim_selectors_found||0),sts=String(s.mta_sts_mode||'').toLowerCase(),lookups=lookupCount(s.spf_lookups);
+ if(!dmarc||['none','missing','not_found','not found'].includes(dmarc)){const mon=dmarc==='none';out.push(finding(mon?'warning':'error','DMARC',mon?'DMARC is in monitoring mode (p=none).':'No usable DMARC policy was reported.',mon?'dmarc_monitoring':'dmarc_missing',mon?'Review aggregate reports and move toward enforcement when legitimate senders are aligned.':'Publish a DMARC record after inventorying legitimate senders.'))}else out.push(finding('pass','DMARC',`DMARC policy reported as ${dmarc}.`));
+ if(!spf||['missing','none','not_found','not found','fail','permerror','temperror','invalid'].includes(spf)){const miss=!spf||['missing','none','not_found','not found'].includes(spf);out.push(finding(miss?'warning':'error','SPF',miss?'No SPF result was reported.':`SPF reported ${spf}.`,miss?'spf_missing':'spf_problem',miss?'Publish one SPF policy that accurately authorizes the domain’s real senders.':'Inspect the SPF mechanisms and DNS lookup path causing the reported failure.'))}
+ else if(lookups!==null&&lookups>=10) out.push(finding('warning','SPF',`SPF currently resolves successfully but uses ${lookups}/10 DNS-querying mechanisms. It is at the RFC processing limit.`,'spf_limit','Reduce unnecessary include/redirect chains where possible. Do not flatten records blindly; keep authorization maintainable and recheck after changes.'));
+ else out.push(finding('pass','SPF',`SPF reported ${spf}${s.spf_lookups?` with ${s.spf_lookups} DNS lookups`:''}.`));
+ if(dkim<1)out.push(finding('warning','DKIM','No DKIM selector was discovered by the scanner. This does not prove the domain never signs mail.','dkim_missing','Verify selectors from actual signed messages before changing DNS.'));else out.push(finding('pass','DKIM',`${dkim} DKIM selector${dkim===1?'':'s'} discovered.`));
+ if(!sts||['none','missing','not_found','not found','off'].includes(sts))out.push(finding('optional','MTA-STS','MTA-STS was not detected. This is an optional transport-security enhancement, not evidence that email is broken.','mta_sts_missing','Consider MTA-STS with TLS-RPT if stricter inbound SMTP transport policy fits the environment.'));else out.push(finding('pass','MTA-STS',`MTA-STS mode reported as ${sts}.`));
+ if(s.bimi_enabled===false)out.push(finding('optional','BIMI','BIMI was not detected. BIMI is optional and is not required for normal authenticated email.','bimi_missing','Only pursue BIMI if brand-display requirements justify it and the domain meets its prerequisites.'));else if(s.bimi_enabled===true)out.push(finding('pass','BIMI','BIMI was detected.'));
+ out.forEach(x=>x.records=collectRecords(data,x.name)); return out;
 }
-
-function derive(data) {
-  const s = data.summary || {};
-  const out = [];
-  const dmarc = String(s.dmarc_policy || '').toLowerCase();
-  const spf = String(s.spf_result || '').toLowerCase();
-  const dkim = Number(s.dkim_selectors_found || 0);
-  const sts = String(s.mta_sts_mode || '').toLowerCase();
-
-  if (!dmarc || ['none','missing','not_found','not found'].includes(dmarc)) {
-    const monitoring = dmarc === 'none';
-    out.push(finding(monitoring ? 'warning' : 'error', 'DMARC', monitoring ? 'DMARC is in monitoring mode (p=none).' : 'No usable DMARC policy was reported.', monitoring ? 'dmarc_monitoring' : 'dmarc_missing', dmarc || 'not reported'));
-  } else {
-    out.push(finding('pass','DMARC',`DMARC policy reported as ${dmarc}.`,'',dmarc));
-  }
-
-  if (!spf || ['missing','none','not_found','not found','fail','permerror','temperror','invalid'].includes(spf)) {
-    const missing = !spf || ['missing','none','not_found','not found'].includes(spf);
-    out.push(finding(missing ? 'warning' : 'error','SPF',missing ? 'No SPF result was reported.' : `SPF reported ${spf}.`,missing ? 'spf_missing' : 'spf_problem',s.spf_lookups || spf || 'not reported'));
-  } else {
-    out.push(finding('pass','SPF',`SPF reported ${spf}${s.spf_lookups ? ` with ${s.spf_lookups} DNS lookups` : ''}.`,'',s.spf_lookups || spf));
-  }
-
-  if (dkim < 1) out.push(finding('warning','DKIM','No DKIM selector was discovered by the scanner. This does not prove the domain never signs mail.','dkim_missing','none discovered'));
-  else out.push(finding('pass','DKIM',`${dkim} DKIM selector${dkim === 1 ? '' : 's'} discovered.`,'',dkim));
-
-  if (!sts || ['none','missing','not_found','not found','off'].includes(sts)) out.push(finding('optional','MTA-STS','MTA-STS was not detected. This is an optional transport-security enhancement, not evidence that email is broken.','mta_sts_missing',sts || 'not reported'));
-  else out.push(finding('pass','MTA-STS',`MTA-STS mode reported as ${sts}.`,'',sts));
-
-  if (s.bimi_enabled === false) out.push(finding('optional','BIMI','BIMI was not detected. BIMI is optional and is not required for normal authenticated email.','bimi_missing','not enabled'));
-  else if (s.bimi_enabled === true) out.push(finding('pass','BIMI','BIMI was detected.','','enabled'));
-
-  return out;
-}
-
-function render(items) {
-  const priority = { error:0, warning:1, optional:2, pass:3 };
-  items.sort((a,b) => priority[a.level] - priority[b.level]);
-  findings.innerHTML = items.map(item => `
-    <article class="finding finding-${item.level}">
-      <div class="finding-top"><span class="finding-state">${item.level === 'pass' ? 'PASS' : item.level === 'optional' ? 'OPTIONAL' : item.level.toUpperCase()}</span><h3>${esc(item.name)}</h3></div>
-      <p>${esc(item.summary)}</p>
-      ${item.key ? `<div class="finding-links"><strong>Read next</strong>${linksFor(item.key)}</div>` : ''}
-    </article>`).join('');
-  const problems = items.filter(x => x.level === 'error' || x.level === 'warning').length;
-  const optional = items.filter(x => x.level === 'optional').length;
-  const passed = items.filter(x => x.level === 'pass').length;
-  counts.textContent = `${problems} potential issue${problems === 1 ? '' : 's'} · ${optional} optional improvement${optional === 1 ? '' : 's'} · ${passed} passed`;
-}
-
-form.addEventListener('submit', async e => {
-  e.preventDefault();
-  const domain = input.value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/\.$/,'');
-  if (!domain) return;
-  status.textContent = `Checking ${domain}…`;
-  results.hidden = true;
-  try {
-    const response = await fetch(`/api/domain-check?domain=${encodeURIComponent(domain)}`, { headers:{ accept:'application/json' } });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Lookup failed.');
-    title.textContent = domain;
-    render(derive(data));
-    raw.textContent = JSON.stringify(data, null, 2);
-    results.hidden = false;
-    status.textContent = 'Analysis complete.';
-    history.replaceState(null,'',`?domain=${encodeURIComponent(domain)}`);
-  } catch (err) {
-    status.textContent = err instanceof Error ? err.message : 'Lookup failed.';
-  }
-});
-
-const initial = new URLSearchParams(location.search).get('domain');
-if (initial) { input.value = initial; form.requestSubmit(); }
-</script>
-</Base>
+function recordsHTML(item,i){if(!item.records.length)return '<p class="record-empty">No record value was exposed for this check by the lookup response.</p>';return item.records.map((r,j)=>{const id=`record-${i}-${j}`;return `<div class="record-box"><div class="record-head"><span>${esc(r.label)}</span><button type="button" class="copy-btn" data-copy-target="${id}">Copy</button></div><pre><code id="${id}">${esc(recordText(r.value))}</code></pre></div>`}).join('')}
+function render(items){const priority={error:0,warning:1,optional:2,pass:3};items.sort((a,b)=>priority[a.level]-priority[b.level]);findings.innerHTML=items.map((item,i)=>`<article class="finding finding-${item.level}"><div class="finding-top"><span class="finding-state">${item.level==='pass'?'PASS':item.level==='optional'?'OPTIONAL':item.level.toUpperCase()}</span><h3>${esc(item.name)}</h3></div><p>${esc(item.summary)}</p>${item.improvement&&item.level!=='pass'?`<div class="improvement"><strong>Suggested improvement</strong><p>${esc(item.improvement)}</p></div>`:''}${item.key?`<div class="finding-links"><strong>Read next</strong>${linksFor(item.key)}</div>`:''}<details class="record-details"><summary>View discovered records${item.records.length?` (${item.records.length})`:''}</summary>${recordsHTML(item,i)}</details></article>`).join('');const problems=items.filter(x=>x.level==='error'||x.level==='warning').length,optional=items.filter(x=>x.level==='optional').length,passed=items.filter(x=>x.level==='pass').length;counts.textContent=`${problems} potential issue${problems===1?'':'s'} · ${optional} optional improvement${optional===1?'':'s'} · ${passed} passed`}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-copy-target]');if(!b)return;const el=document.getElementById(b.dataset.copyTarget);if(!el)return;try{await navigator.clipboard.writeText(el.textContent);const old=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=old,1200)}catch{b.textContent='Copy failed'}});
+form.addEventListener('submit',async e=>{e.preventDefault();const domain=input.value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/\.$/,'');if(!domain)return;status.textContent=`Checking ${domain}…`;results.hidden=true;try{const response=await fetch(`/api/domain-check?domain=${encodeURIComponent(domain)}`,{headers:{accept:'application/json'}}),data=await response.json();if(!response.ok)throw new Error(data.error||'Lookup failed.');title.textContent=domain;render(derive(data));raw.textContent=JSON.stringify(data,null,2);results.hidden=false;status.textContent='Analysis complete.';history.replaceState(null,'',`?domain=${encodeURIComponent(domain)}`)}catch(err){status.textContent=err instanceof Error?err.message:'Lookup failed.'}});
+const initial=new URLSearchParams(location.search).get('domain');if(initial){input.value=initial;form.requestSubmit()}
+</script></Base>
