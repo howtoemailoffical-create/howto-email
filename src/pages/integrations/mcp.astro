@@ -19,8 +19,14 @@ const endpoint = 'https://howto.email/mcp';
       <li><strong>get_article</strong> — Read the text of a public article using its relative URL path.</li>
       <li><strong>check_spf</strong> — Look up a domain's published SPF TXT record.</li>
       <li><strong>check_dmarc</strong> — Look up a domain's published DMARC TXT record.</li>
+      <li><strong>check_mx</strong> — Look up mail exchanger hosts and priorities.</li>
+      <li><strong>check_dkim</strong> — Look up DKIM records using a known selector.</li>
+      <li><strong>check_mta_sts</strong> — Inspect MTA-STS DNS records and published policy.</li>
+      <li><strong>check_tls_rpt</strong> — Look up SMTP TLS reporting records.</li>
+      <li><strong>check_bimi</strong> — Look up BIMI records.</li>
+      <li><strong>analyze_domain</strong> — Summarize public email DNS records and informational findings.</li>
     </ul>
-    <p>SPF and DMARC tools return DNS records, not a complete authentication or deliverability assessment. Documentation search currently uses article paths rather than full-text indexing.</p>
+    <p>DNS checks return public records, not a complete authentication or deliverability assessment. Documentation search currently uses article paths rather than full-text indexing.</p>
 
     <h2>Try it</h2>
     <p>Once connected, ask your MCP client to check the DMARC record for <code>howto.email</code>, or search the documentation for SPF. You can also test the connection using a compatible MCP inspector.</p>
