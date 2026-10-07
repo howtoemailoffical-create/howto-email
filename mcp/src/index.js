@@ -57,7 +57,7 @@ async function dnsRecords(host, type) {
   if (![0, 3].includes(data.Status)) throw Error("DNS returned status " + data.Status);
   return (data.Answer || []).filter(item => item.type === (type === "MX" ? 15 : 16)).map(item => String(item.data || ""));
 }
-const cleanTxt = value => value.replace(/^"|"$/g, "").replace(/"\\s+"/g, "");
+const cleanTxt = value => value.replace(/^"|"$/g, "").replace(/"\s+"/g, "");
 async function txtAt(host, prefix) {
   const records = (await dnsRecords(host, "TXT")).map(cleanTxt);
   return records.filter(value => value.toLowerCase().startsWith(prefix.toLowerCase()));
@@ -66,8 +66,8 @@ async function inspect(domain, kind, selector) {
   if (kind === "mx") {
     const answers = await dnsRecords(domain, "MX");
     const records = answers.map(raw => {
-      const match = raw.match(/^(\\d+)\\s+(.+)$/);
-      return match ? { priority: Number(match[1]), exchange: match[2].replace(/\\.$/, "") } : { raw };
+      const match = raw.match(/^(\d+)\s+(.+)$/);
+      return match ? { priority: Number(match[1]), exchange: match[2].replace(/\.$/, "") } : { raw };
     }).sort((a,b) => (a.priority ?? 99999) - (b.priority ?? 99999));
     return { domain, records, found: records.length > 0, note: "DNS only; does not test mail delivery." };
   }
@@ -75,7 +75,7 @@ async function inspect(domain, kind, selector) {
   const host = kind === "spf" ? domain : kind === "dmarc" ? "_dmarc." + domain : kind === "dkim" ? selector + "._domainkey." + domain : kind === "mta_sts" ? "_mta-sts." + domain : kind === "tls_rpt" ? "_smtp._tls." + domain : selector + "._bimi." + domain;
   const records = (await txtAt(host, prefix)).filter(record => {
     const next = record.slice(prefix.length, prefix.length + 1);
-    return !next || /[;\\s]/.test(next);
+    return !next || /[;\s]/.test(next);
   });
   const result = { domain, host, records, found: records.length > 0 };
   if (kind === "dkim") result.note = "A missing record does not mean DKIM is absent; selectors must be known. DNS lookup does not verify a signature.";
