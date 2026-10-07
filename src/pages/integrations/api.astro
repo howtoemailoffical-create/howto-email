@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Email DNS API | howto.email" description="Free public JSON API for SPF, DMARC, MX, DKIM, MTA-STS, TLS-RPT, BIMI and combined email DNS checks.">
+<div class="wrap page article">
+<p class="kicker">PUBLIC · READ-ONLY · NO API KEY</p>
+<h1>Email DNS API</h1>
+<p>Use standard HTTP GET requests to inspect public email DNS configuration. The API returns JSON, runs on Cloudflare Workers, and requires no account or API key.</p>
+<h2>Endpoints</h2>
+<ul>
+<li><code>/api/analyze?domain=example.com</code> — combined report</li>
+<li><code>/api/spf?domain=example.com</code> — SPF records</li>
+<li><code>/api/dmarc?domain=example.com</code> — DMARC records</li>
+<li><code>/api/mx?domain=example.com</code> — MX hosts and priorities</li>
+<li><code>/api/dkim?domain=example.com&amp;selector=google</code> — DKIM TXT lookup (selector required)</li>
+<li><code>/api/mta-sts?domain=example.com</code> — MTA-STS DNS and HTTPS policy</li>
+<li><code>/api/tls-rpt?domain=example.com</code> — TLS reporting records</li>
+<li><code>/api/bimi?domain=example.com</code> — BIMI record (optional selector)</li>
+</ul>
+<p>All URLs are relative to <code>https://howto.email</code>. For combined analysis, optionally provide <code>dkim_selector</code> to include one known DKIM selector.</p>
+<h2>Try a request</h2>
+<pre><code>curl "https://howto.email/api/analyze?domain=google.com"</code></pre>
+<p><a href="/api/analyze?domain=google.com">View a JSON example →</a></p>
+<h2>Response and limitations</h2>
+<p>Responses include the queried domain, records, and whether matching records were found. Combined analysis also provides informational findings. Failed upstream checks are identified separately. HTTP 400 indicates invalid input, 429 indicates rate limiting, and 502 indicates an upstream lookup failure.</p>
+<p>Results are public DNS observations, not an email security certification. DKIM requires a known selector. MX lookups do not test SMTP connectivity, and BIMI checks do not validate images or certificates.</p>
+<h2>Use with AI assistants</h2>
+<p>An AI assistant that can fetch arbitrary web URLs may be able to read an API response directly. Merely pasting a URL into a chat does not guarantee that its web tools can access or call the API. For native tool access, see the <a href="/integrations/mcp/">MCP server</a>.</p>
+<h2>Usage</h2>
+<p>Responses support cross-origin GET requests. Successful responses may be cached for five minutes. Requests share the MCP Worker's per-client rate limit. The service is offered without availability guarantees; do not submit sensitive information in query parameters.</p>
+<p><a href="https://github.com/howtoemailoffical-create/howto-email/tree/main/mcp">View source code →</a></p>
+</div>
+</Base>
