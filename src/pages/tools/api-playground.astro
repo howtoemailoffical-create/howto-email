@@ -1,0 +1,53 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Email API Playground | howto.email" description="Run free email DNS checks against the howto.email public API and inspect readable results or raw JSON.">
+<section class="wrap page api-playground">
+<p class="kicker">TOOLS / API PLAYGROUND</p>
+<h1>Email API Playground</h1>
+<p class="lead">Query public email DNS records, review findings, and inspect the exact JSON returned by the howto.email API. No account or API key required.</p>
+<form id="api-form" class="api-form">
+<label for="api-domain">Domain</label>
+<div class="api-inputs"><input id="api-domain" name="domain" placeholder="google.com" autocomplete="off" spellcheck="false" required aria-describedby="api-help"/><select id="api-check" aria-label="DNS check"><option value="analyze">Full analysis</option><option value="spf">SPF</option><option value="dmarc">DMARC</option><option value="mx">MX</option><option value="dkim">DKIM</option><option value="mta-sts">MTA-STS</option><option value="tls-rpt">TLS-RPT</option><option value="bimi">BIMI</option></select><button type="submit" id="api-run">Run check</button></div>
+<div id="api-selector-wrap" hidden><label for="api-selector">DKIM selector (required for DKIM, optional for full analysis and BIMI)</label><input id="api-selector" placeholder="google" autocomplete="off" spellcheck="false"/></div>
+<p id="api-help" class="tool-note">Public DNS and published MTA-STS policy only. Do not enter private data. Results do not test live SMTP delivery.</p>
+</form>
+<p id="api-status" role="status" aria-live="polite"></p>
+<section id="api-results" hidden aria-labelledby="api-result-title">
+<div class="api-results-head"><div><p class="kicker">LOOKUP RESULTS</p><h2 id="api-result-title"></h2></div><div class="api-actions"><button type="button" id="api-copy-link">Copy share link</button><button type="button" id="api-copy-json">Copy JSON</button></div></div>
+<div id="api-findings"></div>
+<div id="api-cards" class="api-cards"></div>
+<details class="api-raw"><summary>View raw API response</summary><pre><code id="api-json"></code></pre></details>
+<p class="tool-note">This is an informational DNS lookup. Missing optional records do not necessarily indicate a problem. <a href="/integrations/api/">API documentation →</a></p>
+</section>
+</section>
+</Base>
+<style>
+.api-playground{max-width:1050px}.api-form{margin:2rem 0 1rem;padding:1.4rem;border:1px solid var(--border,#334155);border-radius:12px}.api-form label{display:block;font-weight:650;margin-bottom:.55rem}.api-inputs{display:grid;grid-template-columns:minmax(0,1fr) 170px auto;gap:.7rem}.api-form input,.api-form select,.api-form button,.api-actions button{font:inherit;padding:.8rem;border-radius:8px;border:1px solid #566274;background:#101827;color:inherit}.api-form button{background:#2b65ba;color:#fff;cursor:pointer;border-color:#2b65ba}.api-form button:disabled{opacity:.6;cursor:wait}#api-selector-wrap{margin-top:1rem}#api-selector{width:min(100%,350px)}#api-status{min-height:1.5em}#api-results{margin-top:2rem}.api-results-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}.api-actions{display:flex;gap:.6rem;flex-wrap:wrap}.api-actions button{cursor:pointer}.api-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:1rem;margin:1.3rem 0}.api-card{border:1px solid #39475b;border-radius:12px;padding:1.15rem;min-width:0}.api-card h3{margin:0 0 .5rem}.api-card .api-state{font-size:.85rem;color:#aebbd0}.api-card pre,.api-raw pre{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:.85rem;border-radius:8px;background:#0b1320;font-size:.85rem}.api-card p{margin:.5rem 0}.api-findings{margin-top:1rem}.api-findings li{margin:.35rem 0}.api-raw{margin:1rem 0}.api-raw summary{cursor:pointer}#api-status[data-error]{color:#ff9c9c}@media(max-width:650px){.api-inputs{grid-template-columns:1fr}.api-results-head{align-items:flex-start}}
+</style>
+<script>
+const form=document.querySelector('#api-form');
+const domain=document.querySelector('#api-domain');
+const check=document.querySelector('#api-check');
+const selector=document.querySelector('#api-selector');
+const selectorWrap=document.querySelector('#api-selector-wrap');
+const status=document.querySelector('#api-status');
+const results=document.querySelector('#api-results');
+const cards=document.querySelector('#api-cards');
+const findings=document.querySelector('#api-findings');
+const raw=document.querySelector('#api-json');
+const title=document.querySelector('#api-result-title');
+const run=document.querySelector('#api-run');
+let current=null;
+const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+function updateSelector(){selectorWrap.hidden=!['dkim','bimi','analyze'].includes(check.value);selector.required=check.value==='dkim';selector.placeholder=check.value==='bimi'?'default':'google'}
+check.addEventListener('change',updateSelector);updateSelector();
+function urlFor(){const url=new URL('/api/'+check.value,location.origin);url.searchParams.set('domain',domain.value.trim().toLowerCase());if(selector.value.trim()&&['dkim','bimi','analyze'].includes(check.value))url.searchParams.set(check.value==='analyze'?'dkim_selector':'selector',selector.value.trim());return url}
+function card(label,data){const el=document.createElement('article');el.className='api-card';const heading=document.createElement('h3');heading.textContent=label.toUpperCase().replaceAll('_','-');el.append(heading);const state=document.createElement('p');state.className='api-state';state.textContent=data?.error?'Lookup error':data?.found===true?'Record found':data?.found===false?'No matching record found':'Result';el.append(state);if(data?.host){const host=document.createElement('p');host.textContent='Host: '+data.host;el.append(host)}if(data?.error){const error=document.createElement('p');error.textContent=data.error;el.append(error)}const records=data?.records;if(Array.isArray(records)){if(records.length===0){const p=document.createElement('p');p.textContent='No matching DNS records returned.';el.append(p)}else for(const item of records){const pre=document.createElement('pre');pre.textContent=typeof item==='string'?item:JSON.stringify(item,null,2);el.append(pre)}}if(data?.policy){const sub=document.createElement('h4');sub.textContent='MTA-STS policy';const pre=document.createElement('pre');pre.textContent=data.policy;el.append(sub,pre)}if(data?.policy_error){const p=document.createElement('p');p.textContent='Policy retrieval: '+data.policy_error;el.append(p)}if(data?.note){const p=document.createElement('p');p.textContent=data.note;el.append(p)}return el}
+async function copy(value){try{await navigator.clipboard.writeText(value);status.textContent='Copied to clipboard.'}catch{status.textContent='Copy failed. Select and copy the text manually.'}}
+document.querySelector('#api-copy-json').addEventListener('click',()=>current&&copy(JSON.stringify(current,null,2)));
+document.querySelector('#api-copy-link').addEventListener('click',()=>copy(location.href));
+async function search(){if(!form.reportValidity())return;const d=domain.value.trim().toLowerCase();if(!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(d)){status.textContent='Enter a valid public domain.';status.dataset.error='true';return}const url=urlFor();const share=new URL(location.href);share.search=url.search;share.searchParams.set('check',check.value);history.replaceState(null,'',share);run.disabled=true;results.hidden=true;status.textContent='Checking public DNS records…';delete status.dataset.error;try{const response=await fetch(url.toString(),{headers:{accept:'application/json'},signal:AbortSignal.timeout(20000)});const body=await response.json();if(!response.ok)throw Error(body.error||'API request failed ('+response.status+')');current=body;raw.textContent=JSON.stringify(body,null,2);title.textContent=body.domain||d;cards.replaceChildren();findings.replaceChildren();if(Array.isArray(body.findings)&&body.findings.length){const heading=document.createElement('h3');heading.textContent='Findings';const ul=document.createElement('ul');for(const finding of body.findings){const li=document.createElement('li');li.textContent=finding;ul.append(li)}findings.append(heading,ul)}const entries=body.results?Object.entries(body.results):[[check.value,body]];for(const [name,data] of entries)cards.append(card(name,data));results.hidden=false;status.textContent='Lookup complete. '+entries.length+' check(s) returned.'}catch(error){status.textContent=error instanceof Error?error.message:'Lookup failed';status.dataset.error='true'}finally{run.disabled=false}}
+form.addEventListener('submit',event=>{event.preventDefault();search()});
+const params=new URLSearchParams(location.search);if(params.has('domain')){domain.value=params.get('domain')||'';if(params.has('check')&&[...check.options].some(option=>option.value===params.get('check')))check.value=params.get('check');selector.value=params.get('dkim_selector')||params.get('selector')||'';updateSelector();search()}
+</script>
