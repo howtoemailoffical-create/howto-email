@@ -2,6 +2,7 @@
 // No database, API keys, or paid services required.
 const SITE = "https://howto.email";
 const VERSION = "2025-03-26";
+let sitemapCache = { expires: 0, paths: [] };
 const tools = [
   { name: "check_spf", description: "Retrieve SPF TXT records for a public domain. This is a basic lookup, not a complete SPF validation.", inputSchema: { type: "object", properties: { domain: { type: "string", description: "Public domain, e.g. example.com" } }, required: ["domain"], additionalProperties: false } },
   { name: "check_dmarc", description: "Retrieve DMARC TXT records for a public domain. This is a basic lookup, not a complete DMARC validation.", inputSchema: { type: "object", properties: { domain: { type: "string", description: "Public domain, e.g. example.com" } }, required: ["domain"], additionalProperties: false } },
@@ -33,6 +34,7 @@ async function lookup(domain, type) {
   } finally { clearTimeout(timer); }
 }
 async function articlePaths() {
+  if (sitemapCache.expires > Date.now()) return sitemapCache.paths;
   const r = await fetch(SITE + "/sitemap-index.xml", { signal: AbortSignal.timeout(5000) });
   if (!r.ok) throw Error("Sitemap unavailable");
   const index = await r.text();
@@ -46,7 +48,9 @@ async function articlePaths() {
       try { const u = new URL(m[1]); if (u.origin === SITE) pages.push(u.pathname); } catch {}
     }
   }
-  return [...new Set(pages)];
+  const unique = [...new Set(pages)];
+  if (unique.length) sitemapCache = { paths: unique, expires: Date.now() + 600000 };
+  return unique;
 }
 async function execute(name, args) {
   if (name === "check_spf" || name === "check_dmarc") {
@@ -58,9 +62,17 @@ async function execute(name, args) {
   if (name === "search_articles") {
     const query = String(args.query || "").trim().toLowerCase().slice(0, 100);
     if (!query) throw Error("Search query required");
-    const words = query.split(/\s+/).filter(Boolean);
-    const matches = (await articlePaths()).filter(p => words.some(w => decodeURIComponent(p).toLowerCase().includes(w))).slice(0, 15);
-    return textResult(JSON.stringify(matches.map(p => ({ title: p.split("/").filter(Boolean).at(-1)?.replace(/-/g, " ") || "Home", url: SITE + p })), null, 2));
+    const words = query.match(/[a-z0-9]+/g) || [];
+    if (!words.length) throw Error("Search query required");
+    const matches = (await articlePaths()).map(path => {
+      const parts = path.split("/").filter(Boolean);
+      const title = (parts.at(-1) || "Home").replace(/[-_]/g, " ");
+      const searchable = parts.join(" ").replace(/[-_]/g, " ").toLowerCase();
+      const matched = words.filter(w => searchable.includes(w)).length;
+      const score = matched * 10 + (searchable.includes(query) ? 20 : 0) + (title.toLowerCase().includes(query) ? 10 : 0);
+      return { title, url: SITE + path, score };
+    }).filter(item => item.score > 0).sort((a, b) => b.score - a.score || a.url.localeCompare(b.url)).slice(0, 15);
+    return textResult(JSON.stringify(matches.map(({ title, url }) => ({ title, url })), null, 2));
   }
   if (name === "get_article") {
     const path = args.path;
@@ -77,13 +89,20 @@ async function execute(name, args) {
   throw Error("Unknown tool");
 }
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/" && request.method === "GET") return json({ service: "howto.email MCP", endpoint: "/mcp", tools: tools.map(t => t.name) });
     if (url.pathname !== "/mcp") return new Response("Not found", { status: 404 });
     if (request.method === "GET") return new Response("This stateless MCP endpoint accepts POST requests.", { status: 405, headers: { allow: "POST, OPTIONS" } });
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { allow: "POST, OPTIONS" } });
     if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
+    // Public tools are throttled per client IP at each Cloudflare location.
+    // Shared IPs may share a quota; this is abuse mitigation, not a hard global cap.
+    if (env?.MCP_RATE_LIMITER) {
+      const key = request.headers.get("cf-connecting-ip") || "unknown";
+      const { success } = await env.MCP_RATE_LIMITER.limit({ key });
+      if (!success) return json({ error: "Rate limit exceeded. Try again shortly." }, 429, { "retry-after": "60" });
+    }
     if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) return json({ error: "JSON required" }, 415);
     const len = Number(request.headers.get("content-length") || 0);
     if (len > 8192) return json({ error: "Request too large" }, 413);
