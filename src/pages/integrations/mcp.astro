@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+const endpoint = 'https://howto.email/mcp';
+---
+<Base title="MCP Server | howto.email" description="Connect AI assistants and developer tools to howto.email's free, public MCP server for email documentation and DNS checks.">
+  <div class="wrap page article">
+    <p class="kicker">OPEN SOURCE · FREE TO USE</p>
+    <h1>howto.email MCP server</h1>
+    <p>Use howto.email documentation and public email DNS lookups from an AI assistant or developer tool that supports the Model Context Protocol (MCP). The server is public, read-only, and does not require an API key.</p>
+
+    <h2>Connect</h2>
+    <p>Add a remote MCP server in your MCP-compatible client, select <strong>Streamable HTTP</strong>, and enter this endpoint:</p>
+    <pre><code>{endpoint}</code></pre>
+    <p>Client setup varies. Not every AI assistant supports adding custom remote MCP servers, so check your client's MCP connection settings.</p>
+
+    <h2>Available tools</h2>
+    <ul>
+      <li><strong>search_articles</strong> — Find documentation using keywords matched against article URL paths.</li>
+      <li><strong>get_article</strong> — Read the text of a public article using its relative URL path.</li>
+      <li><strong>check_spf</strong> — Look up a domain's published SPF TXT record.</li>
+      <li><strong>check_dmarc</strong> — Look up a domain's published DMARC TXT record.</li>
+    </ul>
+    <p>SPF and DMARC tools return DNS records, not a complete authentication or deliverability assessment. Documentation search currently uses article paths rather than full-text indexing.</p>
+
+    <h2>Try it</h2>
+    <p>Once connected, ask your MCP client to check the DMARC record for <code>howto.email</code>, or search the documentation for SPF. You can also test the connection using a compatible MCP inspector.</p>
+
+    <h2>Usage and privacy</h2>
+    <p>Tools are read-only and work with public documentation or DNS records. Do not submit private information as search terms or domain arguments. Requests are subject to rate limits and the service may be temporarily unavailable. No account or paid API subscription is needed.</p>
+    <p>The service runs on Cloudflare Workers and is maintained alongside the website. <a href="https://github.com/howtoemailoffical-create/howto-email/tree/main/mcp" rel="noopener noreferrer">View the source code on GitHub →</a></p>
+    <p><a href="/tools/">Browse browser-based tools →</a></p>
+  </div>
+</Base>
