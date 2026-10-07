@@ -2,5 +2,15 @@
   "name": "howto-email-mcp",
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
-  "workers_dev": true
+  "workers_dev": true,
+  "ratelimits": [
+    {
+      "name": "MCP_RATE_LIMITER",
+      "namespace_id": "381706",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    }
+  ]
 }
