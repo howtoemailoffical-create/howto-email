@@ -4,6 +4,14 @@ const SITE = "https://howto.email";
 const VERSION = "2025-03-26";
 let sitemapCache = { expires: 0, paths: [] };
 const tools = [
+
+  { name: "check_mx", description: "Retrieve a domain's MX hosts and priorities; no SMTP connection is attempted.", inputSchema: { type: "object", properties: { domain: { type: "string" } }, required: ["domain"], additionalProperties: false } },
+  { name: "check_dkim", description: "Retrieve a DKIM TXT key at selector._domainkey.domain. Requires a known selector; does not discover all selectors or verify signatures.", inputSchema: { type: "object", properties: { domain: { type: "string" }, selector: { type: "string", description: "Known DKIM selector" } }, required: ["domain", "selector"], additionalProperties: false } },
+  { name: "check_mta_sts", description: "Inspect MTA-STS DNS TXT record and published HTTPS policy; no SMTP/TLS handshake.", inputSchema: { type: "object", properties: { domain: { type: "string" } }, required: ["domain"], additionalProperties: false } },
+  { name: "check_tls_rpt", description: "Retrieve the SMTP TLS reporting TXT record (_smtp._tls).", inputSchema: { type: "object", properties: { domain: { type: "string" } }, required: ["domain"], additionalProperties: false } },
+  { name: "check_bimi", description: "Retrieve BIMI TXT record for a selector (default: default); no logo or certificate validation.", inputSchema: { type: "object", properties: { domain: { type: "string" }, selector: { type: "string", description: "BIMI selector; defaults to default" } }, required: ["domain"], additionalProperties: false } },
+  { name: "analyze_domain", description: "Summarize public SPF, DMARC, MX, MTA-STS, TLS-RPT and default BIMI DNS records. DKIM requires a selector and is only checked when supplied. Findings are informational, not an audit.", inputSchema: { type: "object", properties: { domain: { type: "string" }, dkim_selector: { type: "string", description: "Optional known DKIM selector" } }, required: ["domain"], additionalProperties: false } },
+
   { name: "check_spf", description: "Retrieve SPF TXT records for a public domain. This is a basic lookup, not a complete SPF validation.", inputSchema: { type: "object", properties: { domain: { type: "string", description: "Public domain, e.g. example.com" } }, required: ["domain"], additionalProperties: false } },
   { name: "check_dmarc", description: "Retrieve DMARC TXT records for a public domain. This is a basic lookup, not a complete DMARC validation.", inputSchema: { type: "object", properties: { domain: { type: "string", description: "Public domain, e.g. example.com" } }, required: ["domain"], additionalProperties: false } },
   { name: "search_articles", description: "Find howto.email articles by keywords in their URL paths.", inputSchema: { type: "object", properties: { query: { type: "string", description: "Keywords to search" } }, required: ["query"], additionalProperties: false } },
@@ -33,6 +41,64 @@ async function lookup(domain, type) {
     return (data.Answer || []).filter(a => a.type === 16).map(a => String(a.data || "").replace(/^"|"$/g, "").replace(/"\s+"/g, ""));
   } finally { clearTimeout(timer); }
 }
+
+function selectorName(value) {
+  if (typeof value !== "string" || !/^[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?$/i.test(value)) throw Error("Invalid selector");
+  return value.toLowerCase();
+}
+async function dnsRecords(host, type) {
+  const url = new URL("https://cloudflare-dns.com/dns-query");
+  url.searchParams.set("name", host);
+  url.searchParams.set("type", type);
+  const response = await fetch(url, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(5000) });
+  if (!response.ok) throw Error("DNS lookup unavailable");
+  const data = await response.json();
+  if (typeof data.Status !== "number") throw Error("Invalid DNS response");
+  if (![0, 3].includes(data.Status)) throw Error("DNS returned status " + data.Status);
+  return (data.Answer || []).filter(item => item.type === (type === "MX" ? 15 : 16)).map(item => String(item.data || ""));
+}
+const cleanTxt = value => value.replace(/^"|"$/g, "").replace(/"\\s+"/g, "");
+async function txtAt(host, prefix) {
+  const records = (await dnsRecords(host, "TXT")).map(cleanTxt);
+  return records.filter(value => value.toLowerCase().startsWith(prefix.toLowerCase()));
+}
+async function inspect(domain, kind, selector) {
+  if (kind === "mx") {
+    const answers = await dnsRecords(domain, "MX");
+    const records = answers.map(raw => {
+      const match = raw.match(/^(\\d+)\\s+(.+)$/);
+      return match ? { priority: Number(match[1]), exchange: match[2].replace(/\\.$/, "") } : { raw };
+    }).sort((a,b) => (a.priority ?? 99999) - (b.priority ?? 99999));
+    return { domain, records, found: records.length > 0, note: "DNS only; does not test mail delivery." };
+  }
+  const prefix = { spf: "v=spf1", dmarc: "v=DMARC1", dkim: "v=DKIM1", mta_sts: "v=STSv1", tls_rpt: "v=TLSRPTv1", bimi: "v=BIMI1" }[kind];
+  const host = kind === "spf" ? domain : kind === "dmarc" ? "_dmarc." + domain : kind === "dkim" ? selector + "._domainkey." + domain : kind === "mta_sts" ? "_mta-sts." + domain : kind === "tls_rpt" ? "_smtp._tls." + domain : selector + "._bimi." + domain;
+  const records = (await txtAt(host, prefix)).filter(record => {
+    const next = record.slice(prefix.length, prefix.length + 1);
+    return !next || /[;\\s]/.test(next);
+  });
+  const result = { domain, host, records, found: records.length > 0 };
+  if (kind === "dkim") result.note = "A missing record does not mean DKIM is absent; selectors must be known. DNS lookup does not verify a signature.";
+  if (kind === "bimi") result.note = "Does not validate image, certificate, or mailbox-provider display requirements.";
+  if (kind === "mta_sts" && records.length) {
+    try {
+      const response = await fetch("https://mta-sts." + domain + "/.well-known/mta-sts.txt", { redirect: "error", signal: AbortSignal.timeout(5000) });
+      if (response.ok && (Number(response.headers.get("content-length")) || 0) <= 65536) {
+        const policy = (await response.text()).slice(0, 65536);
+        result.policy = policy;
+        result.policy_fetched = true;
+      } else {
+        result.policy_fetched = false;
+        result.policy_error = "Policy unavailable or too large";
+      }
+    } catch {
+      result.policy_fetched = false;
+      result.policy_error = "HTTPS policy request failed";
+    }
+  }
+  return result;
+}
+
 async function articlePaths() {
   if (sitemapCache.expires > Date.now()) return sitemapCache.paths;
   const r = await fetch(SITE + "/sitemap-index.xml", { signal: AbortSignal.timeout(5000) });
@@ -53,6 +119,27 @@ async function articlePaths() {
   return unique;
 }
 async function execute(name, args) {
+  if (["check_mx", "check_dkim", "check_mta_sts", "check_tls_rpt", "check_bimi", "analyze_domain"].includes(name)) {
+    const domain = domainName(args.domain);
+    if (name === "analyze_domain") {
+      const selector = args.dkim_selector === undefined ? null : selectorName(args.dkim_selector);
+      const kinds = ["spf", "dmarc", "mx", "mta_sts", "tls_rpt", "bimi", ...(selector ? ["dkim"] : [])];
+      const values = await Promise.all(kinds.map(async kind => {
+        try { return [kind, await inspect(domain, kind, kind === "dkim" ? selector : "default")]; }
+        catch (error) { return [kind, { error: error instanceof Error ? error.message : "Lookup failed" }]; }
+      }));
+      const results = Object.fromEntries(values);
+      const findings = [];
+      if (results.dmarc?.records?.some(v => /(?:^|;)\\s*p=none(?:;|$)/i.test(v))) findings.push("DMARC policy is p=none (monitoring, not enforcement).");
+      for (const kind of ["spf", "dmarc", "mx", "mta_sts", "tls_rpt"]) {
+        if (results[kind]?.found === false) findings.push(kind.toUpperCase().replace("_", "-") + " record not found.");
+      }
+      return textResult(JSON.stringify({ domain, results, findings, notes: ["DNS observations are not a security score or full compliance audit.", "DKIM cannot be comprehensively checked without known selectors.", "Missing MTA-STS, TLS-RPT, or BIMI does not by itself mean email is insecure."] }, null, 2));
+    }
+    const kinds = { check_mx: "mx", check_dkim: "dkim", check_mta_sts: "mta_sts", check_tls_rpt: "tls_rpt", check_bimi: "bimi" };
+    const selector = name === "check_dkim" ? selectorName(args.selector) : name === "check_bimi" ? selectorName(args.selector ?? "default") : undefined;
+    return textResult(JSON.stringify(await inspect(domain, kinds[name], selector), null, 2));
+  }
   if (name === "check_spf" || name === "check_dmarc") {
     const domain = domainName(args.domain);
     const host = name === "check_dmarc" ? "_dmarc." + domain : domain;
