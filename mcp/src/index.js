@@ -99,6 +99,38 @@ async function inspect(domain, kind, selector) {
   return result;
 }
 
+
+const API_KINDS = { spf: "spf", dmarc: "dmarc", mx: "mx", dkim: "dkim", "mta-sts": "mta_sts", "tls-rpt": "tls_rpt", bimi: "bimi" };
+const API_HEADERS = { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, HEAD, OPTIONS", "access-control-allow-headers": "Accept", "x-content-type-options": "nosniff" };
+const apiJson = (body, status = 200, extra = {}) => json(body, status, { ...API_HEADERS, "cache-control": status === 200 ? "public, max-age=300" : "no-store", ...extra });
+async function analyze(domain, dkimSelector) {
+  const kinds = ["spf", "dmarc", "mx", "mta_sts", "tls_rpt", "bimi", ...(dkimSelector ? ["dkim"] : [])];
+  const values = await Promise.all(kinds.map(async kind => {
+    try { return [kind, await inspect(domain, kind, kind === "dkim" ? dkimSelector : "default")]; }
+    catch (e) { return [kind, { error: e instanceof Error ? e.message : "Lookup failed" }]; }
+  }));
+  const results = Object.fromEntries(values);
+  const findings = [];
+  if (results.dmarc?.records?.some(v => /(?:^|;)\s*p=none(?:;|$)/i.test(v))) findings.push("DMARC is set to p=none (monitoring only).");
+  for (const kind of ["spf", "dmarc", "mx", "mta_sts", "tls_rpt"]) if (results[kind]?.found === false) findings.push(kind.toUpperCase().replace("_", "-") + " record not found.");
+  return { domain, results, findings, notes: ["Informational DNS inspection; not a security or deliverability certification.", "DKIM needs a known selector.", "MTA-STS, TLS-RPT and BIMI are optional in many environments."] };
+}
+async function apiResponse(request, url) {
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: API_HEADERS });
+  if (!["GET", "HEAD"].includes(request.method)) return apiJson({ error: "Method not allowed; use GET." }, 405, { allow: "GET, HEAD, OPTIONS" });
+  const endpoint = url.pathname.slice(5).replace(/\/$/, "");
+  if (endpoint === "" || endpoint === "docs") {
+    const body = { service: "howto.email Email DNS API", version: "1", documentation: "https://howto.email/integrations/api/", endpoints: ["/api/analyze", ...Object.keys(API_KINDS).map(k => "/api/" + k)], parameters: { domain: "Required public domain", selector: "Required for DKIM; optional for BIMI, default=default", dkim_selector: "Optional on analyze" }, rate_limit: "Shared with MCP requests; 30 requests/minute per client IP per Cloudflare location", note: "Public DNS observations only. No SMTP connectivity tests." };
+    return request.method === "HEAD" ? new Response(null, { headers: API_HEADERS }) : apiJson(body);
+  }
+  if (endpoint !== "analyze" && !Object.hasOwn(API_KINDS, endpoint)) return apiJson({ error: "Unknown endpoint" }, 404);
+  const domain = domainName(url.searchParams.get("domain"));
+  const selector = endpoint === "dkim" ? selectorName(url.searchParams.get("selector")) : endpoint === "bimi" ? selectorName(url.searchParams.get("selector") || "default") : undefined;
+  const dkimSelector = endpoint === "analyze" && url.searchParams.has("dkim_selector") ? selectorName(url.searchParams.get("dkim_selector")) : null;
+  const body = endpoint === "analyze" ? await analyze(domain, dkimSelector) : await inspect(domain, API_KINDS[endpoint], selector);
+  return request.method === "HEAD" ? new Response(null, { headers: { ...API_HEADERS, "cache-control": "public, max-age=300" } }) : apiJson(body);
+}
+
 async function articlePaths() {
   if (sitemapCache.expires > Date.now()) return sitemapCache.paths;
   const r = await fetch(SITE + "/sitemap-index.xml", { signal: AbortSignal.timeout(5000) });
@@ -123,18 +155,7 @@ async function execute(name, args) {
     const domain = domainName(args.domain);
     if (name === "analyze_domain") {
       const selector = args.dkim_selector === undefined ? null : selectorName(args.dkim_selector);
-      const kinds = ["spf", "dmarc", "mx", "mta_sts", "tls_rpt", "bimi", ...(selector ? ["dkim"] : [])];
-      const values = await Promise.all(kinds.map(async kind => {
-        try { return [kind, await inspect(domain, kind, kind === "dkim" ? selector : "default")]; }
-        catch (error) { return [kind, { error: error instanceof Error ? error.message : "Lookup failed" }]; }
-      }));
-      const results = Object.fromEntries(values);
-      const findings = [];
-      if (results.dmarc?.records?.some(v => /(?:^|;)\\s*p=none(?:;|$)/i.test(v))) findings.push("DMARC policy is p=none (monitoring, not enforcement).");
-      for (const kind of ["spf", "dmarc", "mx", "mta_sts", "tls_rpt"]) {
-        if (results[kind]?.found === false) findings.push(kind.toUpperCase().replace("_", "-") + " record not found.");
-      }
-      return textResult(JSON.stringify({ domain, results, findings, notes: ["DNS observations are not a security score or full compliance audit.", "DKIM cannot be comprehensively checked without known selectors.", "Missing MTA-STS, TLS-RPT, or BIMI does not by itself mean email is insecure."] }, null, 2));
+      return textResult(JSON.stringify(await analyze(domain, selector), null, 2));
     }
     const kinds = { check_mx: "mx", check_dkim: "dkim", check_mta_sts: "mta_sts", check_tls_rpt: "tls_rpt", check_bimi: "bimi" };
     const selector = name === "check_dkim" ? selectorName(args.selector) : name === "check_bimi" ? selectorName(args.selector ?? "default") : undefined;
@@ -178,6 +199,20 @@ async function execute(name, args) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+      // The API and MCP share the same per-IP rate-limit binding.
+      if (env?.MCP_RATE_LIMITER) {
+        const key = request.headers.get("cf-connecting-ip") || "unknown";
+        const { success } = await env.MCP_RATE_LIMITER.limit({ key });
+        if (!success) return apiJson({ error: "Rate limit exceeded. Try again shortly." }, 429, { "retry-after": "60" });
+      }
+      try { return await apiResponse(request, url); }
+      catch (e) {
+        const message = e instanceof Error ? e.message : "Request failed";
+        const invalid = /^(Invalid|Provide|DNS returned status)/.test(message);
+        return apiJson({ error: invalid ? message : "Upstream lookup failed" }, invalid ? 400 : 502);
+      }
+    }
     if (url.pathname === "/" && request.method === "GET") return json({ service: "howto.email MCP", endpoint: "/mcp", tools: tools.map(t => t.name) });
     if (url.pathname !== "/mcp") return new Response("Not found", { status: 404 });
     if (request.method === "GET") return new Response("This stateless MCP endpoint accepts POST requests.", { status: 405, headers: { allow: "POST, OPTIONS" } });
