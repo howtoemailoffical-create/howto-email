@@ -1,0 +1,106 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Email Header Analyzer | howto.email" description="Analyze raw email headers locally in your browser. Inspect authentication results, Received hops, delays, and message metadata without uploading headers.">
+<section class="wrap page header-tool">
+<p class="kicker">TOOLS / EMAIL HEADER ANALYZER</p>
+<h1>Email Header Analyzer</h1>
+<p class="lead">Paste the original message headers to inspect authentication results, delivery hops, and potential delays. All analysis happens in your browser.</p>
+<form id="header-form">
+<label for="header-input">Raw email headers</label>
+<textarea id="header-input" rows="12" spellcheck="false" placeholder="Received: from mail.example.com ...&#10;Authentication-Results: mx.example.net; spf=pass ...&#10;From: Sender &lt;sender@example.com&gt;" required maxlength="200000" aria-describedby="header-help"></textarea>
+<p id="header-help" class="tool-note">Headers can contain addresses, IPs, message IDs and internal infrastructure details. Nothing is sent to howto.email; avoid pasting sensitive content into other services.</p>
+<div class="header-actions"><button type="submit" class="primary">Analyze headers</button><button type="button" id="header-clear">Clear</button><button type="button" id="header-sample">Load example</button></div>
+</form>
+<p id="header-status" role="status" aria-live="polite"></p>
+<section id="header-results" hidden aria-labelledby="header-results-title">
+<div class="header-results-head"><div><p class="kicker">ANALYSIS</p><h2 id="header-results-title">Message overview</h2></div><button type="button" id="header-copy">Copy summary</button></div>
+<div id="header-overview" class="header-panel"></div>
+<h2>Authentication results</h2>
+<div id="header-auth" class="header-cards"></div>
+<h2>Delivery path</h2>
+<p class="tool-note">Received headers are usually prepended by each server, so the oldest hop appears first below. Header timestamps and hostnames are supplied by mail systems and may be inaccurate or forged. Trust results only from systems you control.</p>
+<div id="header-hops" class="header-hops"></div>
+<h2>Observations</h2>
+<ul id="header-notes"></ul>
+<details><summary>All parsed header fields</summary><div id="header-fields" class="header-fields"></div></details>
+<p class="tool-note">This tool parses header text; it does not verify DKIM signatures, query DNS, determine whether mail is malicious, or prove that an authentication result is trustworthy. <a href="/reference/dmarc/">DMARC reference →</a></p>
+</section>
+</section>
+</Base>
+<style>
+.header-tool{max-width:1060px}.header-tool form{margin:2rem 0 1rem;border:1px solid #354155;border-radius:12px;padding:1.25rem}.header-tool label{display:block;font-weight:650;margin-bottom:.6rem}.header-tool textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:220px;background:#0d1725;color:inherit;border:1px solid #526079;border-radius:8px;padding:1rem;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.header-actions,.header-results-head{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}.header-results-head{justify-content:space-between}.header-tool button{background:#111e2e;border:1px solid #51627b;border-radius:8px;color:inherit;font:inherit;padding:.7rem 1rem;cursor:pointer}.header-tool button.primary{background:#2867b5;border-color:#2867b5;color:#fff}.header-tool button:focus-visible,.header-tool textarea:focus-visible{outline:2px solid #6bb5ff;outline-offset:2px}.header-panel,.header-auth-card,.header-hop{border:1px solid #354155;border-radius:12px;padding:1rem;background:#0c1521;min-width:0}.header-panel{margin:1rem 0}.header-panel dl{display:grid;grid-template-columns:140px minmax(0,1fr);gap:.55rem 1rem;margin:0}.header-panel dt{color:#a5b8ce}.header-panel dd{margin:0;overflow-wrap:anywhere}.header-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.8rem}.header-auth-card h3{margin:0 0 .35rem}.header-auth-card p{margin:.25rem 0;overflow-wrap:anywhere}.header-auth-card small{color:#a9b8c9}.header-auth-card[data-result="pass"]{border-left:3px solid #55c49a}.header-auth-card[data-result="fail"],.header-auth-card[data-result="permerror"]{border-left:3px solid #e79a7c}.header-hops{display:grid;gap:.8rem}.header-hop h3{margin:0 0 .45rem;font-size:1rem}.header-hop p{margin:.35rem 0;overflow-wrap:anywhere}.header-hop pre,.header-fields pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem;background:#080f1a;border-radius:7px;padding:.8rem}.header-fields{display:grid;gap:.5rem}.header-fields details{border-bottom:1px solid #344155;padding:.5rem}.header-tool #header-status{min-height:1.5em}.header-tool #header-status[data-error]{color:#ffa3a3}@media(max-width:620px){.header-panel dl{grid-template-columns:1fr;gap:.2rem}.header-panel dt{margin-top:.55rem}}
+</style>
+<script>
+const form=document.querySelector('#header-form');
+const input=document.querySelector('#header-input');
+const status=document.querySelector('#header-status');
+const results=document.querySelector('#header-results');
+const overview=document.querySelector('#header-overview');
+const auth=document.querySelector('#header-auth');
+const hops=document.querySelector('#header-hops');
+const notes=document.querySelector('#header-notes');
+const fields=document.querySelector('#header-fields');
+let summary='';
+const SAMPLE='Received: from inbound.example.net (inbound.example.net [192.0.2.20])\r\n\tby mailbox.example.org with ESMTPS id 1234; Wed, 07 Oct 2026 15:03:10 +0000\r\nReceived: from outbound.example.com (outbound.example.com [192.0.2.10])\r\n\tby inbound.example.net with ESMTPS id 5678; Wed, 07 Oct 2026 15:03:04 +0000\r\nAuthentication-Results: mailbox.example.org; spf=pass smtp.mailfrom=example.com;\r\n\tdkim=pass header.d=example.com; dmarc=pass header.from=example.com\r\nFrom: Example Sender <sender@example.com>\r\nTo: Example Recipient <recipient@example.org>\r\nSubject: Example message for header analysis\r\nDate: Wed, 07 Oct 2026 15:02:55 +0000\r\nMessage-ID: <example-1234@example.com>';
+function parseHeaders(raw){
+const lines=raw.replace(/\r\n?/g,'\n').split('\n');
+const out=[];let current=null;
+for(const line of lines){
+if(line===''){if(out.length)break;continue}
+if(/^[ \t]/.test(line)){if(current)current.value+=' '+line.trim();continue}
+const index=line.indexOf(':');
+if(index<=0||!/^[!-9;-~]+$/.test(line.slice(0,index))){if(out.length)break;continue}
+current={name:line.slice(0,index),value:line.slice(index+1).trim()};out.push(current);
+}
+return out;
+}
+const get=(items,name)=>items.filter(x=>x.name.toLowerCase()===name.toLowerCase()).map(x=>x.value);
+const first=(items,name)=>get(items,name)[0]||'';
+function appendText(parent,tag,text){const node=document.createElement(tag);node.textContent=text;parent.append(node);return node}
+function parseAuth(items){
+const sources=[...get(items,'Authentication-Results'),...get(items,'ARC-Authentication-Results')];
+const names=['spf','dkim','dmarc','arc'];
+return names.map(name=>{
+const found=[];
+for(const source of sources){const re=new RegExp('(?:^|[;\\s])'+name+'\\s*=\\s*([a-z0-9_-]+)','gi');let match;while((match=re.exec(source))!==null){found.push({result:match[1].toLowerCase(),source:source.slice(0,220)})}}
+return {name,found};
+});
+}
+function parseHop(value,index){
+const semicolon=value.lastIndexOf(';');
+const timestamp=semicolon<0?'':value.slice(semicolon+1).trim();
+const ms=timestamp?Date.parse(timestamp):NaN;
+const from=value.match(/\bfrom\s+(.+?)(?=\s+by\s+|;|$)/i)?.[1]||'Not specified';
+const by=value.match(/\bby\s+(.+?)(?=\s+(?:with|id|for|via)\s+|;|$)/i)?.[1]||'Not specified';
+return {index,from,by,timestamp,ms:Number.isFinite(ms)?ms:null,raw:value};
+}
+function analyze(){
+const raw=input.value;
+if(!raw.trim()){status.textContent='Paste raw email headers first.';status.dataset.error='true';return}
+const items=parseHeaders(raw);
+if(!items.length){status.textContent='No valid header fields found. Paste the original raw headers.';status.dataset.error='true';return}
+delete status.dataset.error;
+results.hidden=false;overview.replaceChildren();auth.replaceChildren();hops.replaceChildren();notes.replaceChildren();fields.replaceChildren();
+const dl=document.createElement('dl');for(const [label,value] of [['From',first(items,'From')||'Not present'],['To',first(items,'To')||'Not present'],['Subject',first(items,'Subject')||'Not present'],['Date',first(items,'Date')||'Not present'],['Message-ID',first(items,'Message-ID')||'Not present'],['Return-Path',first(items,'Return-Path')||'Not present']]){appendText(dl,'dt',label);appendText(dl,'dd',value)}overview.append(dl);
+const checks=parseAuth(items);for(const item of checks){const card=document.createElement('article');card.className='header-auth-card';const outcomes=[...new Set(item.found.map(x=>x.result))];if(outcomes.length===1)card.dataset.result=outcomes[0];appendText(card,'h3',item.name.toUpperCase());appendText(card,'p',outcomes.length?outcomes.join(', '):'Not reported');appendText(card,'small',item.found.length?item.found.length+' result(s) reported':'No result in Authentication-Results');auth.append(card)}
+const received=get(items,'Received').map(parseHop).reverse();
+let delays=0;
+received.forEach((hop,i)=>{const card=document.createElement('article');card.className='header-hop';appendText(card,'h3','Hop '+(i+1));appendText(card,'p','From: '+hop.from);appendText(card,'p','By: '+hop.by);appendText(card,'p','Timestamp: '+(hop.timestamp||'Not present'));if(i>0&&hop.ms!==null&&received[i-1].ms!==null){const seconds=(hop.ms-received[i-1].ms)/1000;if(seconds>=0){appendText(card,'p','Elapsed since previous hop: '+seconds.toFixed(1)+' seconds');if(seconds>300)delays++}else appendText(card,'p','Timestamps out of order; delay cannot be inferred.')}const details=document.createElement('details');appendText(details,'summary','Raw Received header');appendText(details,'pre',hop.raw);card.append(details);hops.append(card)});
+if(!received.length)appendText(hops,'p','No Received headers found.');
+const observations=[];
+if(!get(items,'Authentication-Results').length)observations.push('No Authentication-Results header was supplied; authentication cannot be assessed from this text.');
+if(checks.some(x=>x.found.some(y=>['fail','softfail','permerror','temperror'].includes(y.result))))observations.push('One or more authentication failures or errors were reported. Confirm the trusted receiving server before interpreting these results.');
+if(delays)observations.push(delays+' hop interval(s) exceeded five minutes based on supplied timestamps. Investigate with server logs.');
+if(received.some((hop,i)=>i>0&&hop.ms!==null&&received[i-1].ms!==null&&hop.ms<received[i-1].ms))observations.push('Some Received timestamps are out of order. Clock skew or forged headers may explain this.');
+if(!observations.length)observations.push('No obvious issues detected in the supplied header fields. This does not establish that the message is safe or authenticated.');
+for(const item of observations)appendText(notes,'li',item);
+for(const item of items){const details=document.createElement('details');appendText(details,'summary',item.name);appendText(details,'pre',item.value);fields.append(details)}
+summary=['Email header analysis','From: '+first(items,'From'),'Subject: '+first(items,'Subject'),'Received hops: '+received.length,...checks.map(x=>x.name.toUpperCase()+': '+(x.found.map(y=>y.result).join(', ')||'not reported')),...observations].join('\n');
+status.textContent='Analyzed '+items.length+' header fields and '+received.length+' Received hops locally in your browser.';
+}
+form.addEventListener('submit',event=>{event.preventDefault();analyze()});
+document.querySelector('#header-clear').addEventListener('click',()=>{input.value='';results.hidden=true;summary='';status.textContent='Cleared.';input.focus()});
+document.querySelector('#header-sample').addEventListener('click',()=>{input.value=SAMPLE;analyze()});
+document.querySelector('#header-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(summary);status.textContent='Summary copied.'}catch{status.textContent='Clipboard unavailable. Try copying the visible results.'}});
+</script>
