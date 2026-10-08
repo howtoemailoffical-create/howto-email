@@ -1,259 +1,105 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
-<Base title="Email Header Analyzer | howto.email" description="Analyze raw email headers locally in your browser. Inspect authentication results, Received hops, delays, and message metadata without uploading headers.">
-<section class="wrap page header-tool">
-<p class="kicker">TOOLS / EMAIL HEADER ANALYZER</p>
-<h1>Email Header Analyzer</h1>
-<p class="lead">Paste the original message headers to inspect authentication results, delivery hops, and potential delays. All analysis happens in your browser.</p>
-<form id="header-form">
-<label for="header-input">Raw email headers</label>
-<textarea id="header-input" rows="12" spellcheck="false" placeholder="Received: from mail.example.com ...&#10;Authentication-Results: mx.example.net; spf=pass ...&#10;From: Sender &lt;sender@example.com&gt;" required maxlength="200000" aria-describedby="header-help"></textarea>
-<p id="header-help" class="tool-note">Headers can contain addresses, IPs, message IDs and internal infrastructure details. Nothing is sent to howto.email; avoid pasting sensitive content into other services.</p>
-<div class="header-actions"><button type="submit" class="primary">Analyze headers</button><button type="button" id="header-clear">Clear</button><button type="button" id="header-sample">Load example</button></div>
-</form>
-<p id="header-status" role="status" aria-live="polite"></p>
-<section id="header-results" hidden aria-labelledby="header-results-title">
-<div class="header-results-head"><div><p class="kicker">ANALYSIS</p><h2 id="header-results-title">Email header results</h2></div><button type="button" id="header-copy">Copy summary</button></div>
-<div id="header-verdict" class="header-verdict" role="status"></div><div id="header-metrics" class="header-metrics"></div><div id="header-overview" class="header-panel"></div>
-<h2>Authentication</h2>
-<p class="tool-note">These are claims in the supplied headers, not independently verified authentication results. ARC is reported separately from SPF, DKIM, and DMARC.</p><div id="header-auth" class="header-cards"></div><details class="header-advanced"><summary>ARC authentication history (if present)</summary><div id="header-arc" class="header-cards"></div></details>
-<h2>Delivery timeline</h2>
-<p class="tool-note">Received headers are usually prepended by each server, so the oldest hop appears first below. Header timestamps and hostnames are supplied by mail systems and may be inaccurate or forged. Trust results only from systems you control.</p>
-<div id="header-hops" class="header-hops"></div>
-<h2>Summary observations</h2>
-<ul id="header-notes" class="header-observations"></ul>
-<details class="header-raw-section"><summary>All parsed header fields</summary><div id="header-fields" class="header-fields"></div></details>
-<p class="tool-note">This tool parses header text; it does not verify DKIM signatures, query DNS, determine whether mail is malicious, or prove that an authentication result is trustworthy. <a href="/reference/dmarc/">DMARC reference →</a></p>
-</section>
-</section>
+<Base title="Email Header Analyzer | howto.email" description="Privately inspect email authentication results, DKIM signatures, ARC history, delivery timeline and message identities in your browser.">
+<main class="wrap page header-tool">
+ <p class="kicker">TOOLS / EMAIL HEADER ANALYZER</p>
+ <h1>Email Header Analyzer</h1>
+ <p class="lead">Understand an email's authentication reports and delivery path without uploading your message. Parsing stays in your browser.</p>
+ <form id="ha-form">
+  <label for="ha-input">Raw message headers</label>
+  <textarea id="ha-input" rows="11" maxlength="200000" spellcheck="false" required placeholder="Received: from smtp.example.net ...&#10;Authentication-Results: mx.example.org; spf=pass ...&#10;From: Sender &lt;sender@example.net&gt;" aria-describedby="ha-privacy"></textarea>
+  <p id="ha-privacy" class="ha-muted">Private by design: no headers are transmitted, saved or logged by this tool. Headers can contain private email addresses, IPs and message IDs.</p>
+  <div class="ha-actions"><button type="submit" class="ha-primary">Analyze headers</button><button type="button" id="ha-sample">Load example</button><button type="button" id="ha-clear">Clear</button></div>
+ </form>
+ <p id="ha-status" role="status" aria-live="polite"></p>
+ <div id="ha-results" hidden>
+  <div class="ha-toolbar"><div><p class="kicker">LOCAL ANALYSIS</p><h2>Message results</h2></div><div class="ha-actions"><button id="ha-copy" type="button">Copy report</button><button id="ha-print" type="button">Print / Save PDF</button></div></div>
+  <section class="ha-section" aria-labelledby="ha-summary-heading">
+   <h2 id="ha-summary-heading">Summary</h2>
+   <div id="ha-verdict" class="ha-verdict"></div><div id="ha-metrics" class="ha-metrics"></div><div id="ha-observations" class="ha-observations"></div>
+  </section>
+  <section class="ha-section" aria-labelledby="ha-auth-heading">
+   <h2 id="ha-auth-heading">Authentication</h2><p class="ha-muted">SPF, DKIM and DMARC below are results <em>reported by a mail server in these headers</em>. This analyzer does not independently verify them.</p>
+   <div id="ha-auth" class="ha-cards"></div>
+   <div id="ha-alignment" class="ha-explanation"></div>
+   <details id="ha-arc-section" class="ha-expander" hidden><summary>ARC history and evidence</summary><div id="ha-arc" class="ha-cards"></div></details>
+   <div id="ha-signatures" class="ha-signatures"></div>
+  </section>
+  <section class="ha-section" aria-labelledby="ha-route-heading">
+   <h2 id="ha-route-heading">Delivery timeline</h2>
+   <p class="ha-muted">Received lines appear oldest first below. Hop timing is derived from server-supplied timestamps; clocks may differ and untrusted Received fields can be forged.</p>
+   <div id="ha-hops" class="ha-hops"></div>
+  </section>
+  <section class="ha-section" aria-labelledby="ha-meta-heading">
+   <h2 id="ha-meta-heading">Message details</h2>
+   <dl id="ha-identity" class="ha-identity"></dl>
+   <details class="ha-expander"><summary>All parsed header fields</summary><div id="ha-fields" class="ha-fields"></div></details>
+  </section>
+  <p class="ha-muted">This tool parses untrusted text. It does not perform DNS lookups, cryptographically validate DKIM/ARC, establish sender identity, or decide whether a message is safe.</p>
+ </div>
+</main>
 </Base>
 <style is:global>
-.header-tool{max-width:1060px}
-.header-tool form{margin:1.5rem 0;border:1px solid var(--border,#354155);border-radius:12px;padding:1.2rem}
-.header-tool label{display:block;font-weight:650;margin-bottom:.6rem}
-.header-tool textarea{box-sizing:border-box;display:block;width:100%;min-height:180px;resize:vertical;border:1px solid #526079;border-radius:8px;padding:1rem;background:#101a29;color:inherit;font:13px/1.5 ui-monospace,Consolas,monospace}
-.header-tool button{border:1px solid #526079;border-radius:8px;padding:.65rem 1rem;color:inherit;background:transparent;cursor:pointer;font:inherit}
-.header-tool button.primary{color:#fff;background:#2867b5;border-color:#2867b5}
-.header-tool button:focus-visible,.header-tool textarea:focus-visible,.header-tool summary:focus-visible{outline:2px solid #72b8ff;outline-offset:2px}
-.header-actions,.header-results-head{display:flex;gap:.65rem;align-items:center;flex-wrap:wrap}
-.header-results-head{justify-content:space-between;margin:1rem 0}
-.header-tool #header-status{min-height:1.5em}.header-tool #header-status[data-error]{color:#e99898}
+.header-tool{max-width:1080px;width:100%;min-width:0}
+.header-tool *, .header-tool *:before,.header-tool *:after{box-sizing:border-box;min-width:0}
 .header-tool [hidden]{display:none!important}
-.header-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin:1rem 0}
-.header-metric,.header-panel,.header-auth-card,.header-hop{min-width:0;border:1px solid var(--border,#354155);border-radius:10px;padding:1rem;background:var(--card,#101a29)}
-.header-metric span{display:block;font-size:.8rem;color:var(--muted,#9cacbd)}.header-metric strong{display:block;font-size:1.45rem;line-height:1.35;overflow-wrap:anywhere}
-.header-panel{margin:1rem 0}.header-panel dl{display:grid;grid-template-columns:125px minmax(0,1fr);gap:.6rem 1rem;margin:0}.header-panel dt{color:var(--muted,#a2afbf)}.header-panel dd{margin:0;overflow-wrap:anywhere;word-break:break-word}
-.header-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}
-.header-auth-card{overflow:hidden}.header-auth-card h3{margin:0 0 .6rem;font-size:1rem}
-.header-auth-card .result-badge{display:inline-block;border-radius:6px;padding:.3rem .6rem;font-size:.8rem;font-weight:750;background:#27364a;color:#dbe7f5}
-.header-auth-card[data-result="pass"]{border-top:3px solid #34aa83}.header-auth-card[data-result="pass"] .result-badge{background:#174236;color:#a7eccc}
-.header-auth-card[data-result="fail"],.header-auth-card[data-result="softfail"],.header-auth-card[data-result="permerror"]{border-top:3px solid #db7772}
-.header-auth-card[data-result="fail"] .result-badge,.header-auth-card[data-result="softfail"] .result-badge,.header-auth-card[data-result="permerror"] .result-badge{background:#542b30;color:#ffc8c3}
-.header-auth-card p{margin:.6rem 0 .3rem;overflow-wrap:anywhere;word-break:break-word;font-size:.87rem}
-.header-auth-card .auth-label{color:var(--muted,#9cacbd);font-size:.77rem;margin-top:.8rem}
-.header-auth-card .auth-value{font-size:.88rem;font-weight:600}
-.header-auth-card details{margin-top:.75rem}.header-auth-card pre,.header-hop pre,.header-fields pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;font-size:.76rem;line-height:1.5;background:rgba(110,128,152,.1);padding:.7rem;border-radius:7px}
-.header-advanced{margin:.8rem 0 1.6rem}
-.header-hops{display:grid;gap:.7rem}.header-hop{border-left:3px solid #4c84b8}
-.header-hop[data-delay="slow"]{border-left-color:#d49b56}.header-hop[data-delay="invalid"]{border-left-color:#d87777}
-.header-hop h3{margin:0 0 .6rem;font-size:1rem}.header-hop p{margin:.35rem 0;overflow-wrap:anywhere}
-.hop-route{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.6rem}.hop-route .node{min-width:0;overflow-wrap:anywhere;font-size:.87rem}.hop-route .arrow{color:var(--muted,#9cacbd)}
-.hop-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin:.8rem 0}.hop-meta span{background:rgba(100,126,157,.15);padding:.25rem .5rem;border-radius:5px;font-size:.8rem}
-.header-tool details summary{cursor:pointer}.header-fields details{padding:.5rem 0;border-bottom:1px solid var(--border,#354155)}
-.header-observations{padding-left:1.2rem}.header-observations li{margin:.65rem 0;line-height:1.55}
-.header-tool h2{margin-top:2rem}
-@media(max-width:720px){.header-cards{grid-template-columns:1fr}.header-metrics{grid-template-columns:1fr 1fr}.header-panel dl{grid-template-columns:1fr;gap:.15rem}.header-panel dt:not(:first-child){margin-top:.65rem}.hop-route{grid-template-columns:1fr}.hop-route .arrow{transform:rotate(90deg);justify-self:start}}
-@media print{body{background:#fff!important;color:#111!important}.header-tool{max-width:none}.header-tool form,.header-tool #header-status,.header-tool #header-copy,.header-tool .header-advanced,.header-tool .header-fields{display:none!important}.header-metric,.header-panel,.header-auth-card,.header-hop{background:#fff!important;color:#111!important;border:1px solid #b6b6b6!important;break-inside:avoid}.header-tool .result-badge{background:#eee!important;color:#111!important}.header-tool .auth-label,.header-tool dt,.header-tool .header-metric span{color:#555!important}.header-tool pre{color:#222!important}.header-tool details:not([open]) pre{display:none}.header-tool .header-cards{grid-template-columns:repeat(3,minmax(0,1fr))}header,nav,footer{display:none!important}.header-tool{padding:0!important}}
-
-/* Results layout: hard constraints prevent any header value from stretching cards. */
-.header-tool,.header-tool section,.header-tool article,.header-tool div,.header-tool dl,.header-tool dd{min-width:0}
-.header-tool #header-results{width:100%;max-width:100%;box-sizing:border-box;overflow:clip}
-.header-tool .header-results-head{gap:1rem;margin:1.75rem 0 1.1rem}
-.header-tool .header-results-head h2{margin:.15rem 0}
-.header-tool .header-verdict{box-sizing:border-box;width:100%;border:1px solid var(--border,#354155);border-left:4px solid #8ea5bd;border-radius:10px;padding:1.15rem 1.35rem;margin:0 0 1rem;background:rgba(100,126,157,.08)}
-.header-tool .header-verdict[data-state="attention"]{border-left-color:#de766f}
-.header-tool .header-verdict[data-state="reported-pass"]{border-left-color:#38b394}
-.header-tool .verdict-title{font-size:1.05rem;line-height:1.45;font-weight:750}
-.header-tool .header-verdict p{margin:.4rem 0 0;line-height:1.6;overflow-wrap:anywhere}
-.header-tool .header-metrics{gap:1rem;margin:1rem 0 1.5rem}
-.header-tool .header-metric{padding:1.2rem 1.3rem;box-sizing:border-box}
-.header-tool .header-panel{padding:1.35rem 1.5rem;margin:1rem 0 1.8rem;box-sizing:border-box;overflow:hidden}
-.header-tool .header-panel dl{grid-template-columns:minmax(100px,155px) minmax(0,1fr);gap:0;margin:0}
-.header-tool .header-panel dt,.header-tool .header-panel dd{padding:.8rem 0;border-bottom:1px solid var(--border,rgba(140,156,176,.2));line-height:1.5}
-.header-tool .header-panel dt:last-of-type,.header-tool .header-panel dd:last-child{border-bottom:0}
-.header-tool .header-panel dd{padding-left:1rem;overflow-wrap:anywhere;word-break:break-word}
-.header-tool .header-cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;align-items:stretch}
-.header-tool .header-auth-card{box-sizing:border-box;width:100%;max-width:100%;overflow:hidden;padding:1.15rem 1.25rem}
-.header-tool .header-auth-card .auth-value{max-width:100%;overflow-wrap:anywhere;word-break:break-word;line-height:1.5}
-.header-tool .header-auth-card .auth-label{margin:.85rem 0 .2rem}
-.header-tool .header-auth-card details{max-width:100%;width:100%;box-sizing:border-box;border-top:1px solid var(--border,#354155);padding-top:.8rem;margin-top:1rem}
-.header-tool .header-auth-card pre,.header-tool .header-hop pre,.header-tool .header-fields pre{box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-all;white-space:pre-wrap;overflow-x:auto;margin:.6rem 0 0}
-.header-tool .header-advanced{max-width:100%;overflow:hidden}
-.header-tool .header-hops{gap:1rem}
-.header-tool .header-hop{box-sizing:border-box;max-width:100%;padding:1.2rem 1.35rem;overflow:hidden}
-.header-tool .hop-route{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:1rem}
-.header-tool .hop-route .node{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
-.header-tool .hop-route .node p{line-height:1.5}
-.header-tool .header-raw-section{margin-top:1.75rem;border:1px solid var(--border,#354155);border-radius:10px;padding:1.1rem 1.25rem;max-width:100%;box-sizing:border-box}
-.header-tool .header-raw-section>summary{font-weight:650}
-.header-tool .header-fields{margin-top:1rem;display:grid;gap:0;max-width:100%}
-.header-tool .header-field-row{display:grid;grid-template-columns:minmax(100px,180px) minmax(0,1fr);border-top:1px solid var(--border,#354155);gap:1rem;padding:.85rem 0;max-width:100%}
-.header-tool .header-field-name{font-size:.79rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;overflow-wrap:anywhere}
-.header-tool .header-field-value{overflow-wrap:anywhere;word-break:break-word;font: .83rem/1.6 ui-monospace,Consolas,monospace}
-.header-tool .header-field-value details{max-width:100%;min-width:0}
-.header-tool .header-field-value summary{overflow-wrap:anywhere;word-break:break-all}
-@media(max-width:800px){
- .header-tool .header-cards{grid-template-columns:1fr}
- .header-tool .header-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
- .header-tool .header-panel dl{grid-template-columns:minmax(90px,115px) minmax(0,1fr)}
-}
-@media(max-width:520px){
- .header-tool .header-metrics{grid-template-columns:1fr}
- .header-tool .header-panel{padding:1rem}
- .header-tool .header-panel dl{grid-template-columns:1fr}
- .header-tool .header-panel dt{border-bottom:0;padding:.7rem 0 0;font-size:.8rem}
- .header-tool .header-panel dd{padding:.15rem 0 .7rem}
- .header-tool .header-field-row{grid-template-columns:1fr;gap:.4rem}
- .header-tool .hop-route{grid-template-columns:1fr;gap:.3rem}
- .header-tool .header-hop,.header-tool .header-auth-card{padding:1rem}
-}
-@media print{
- .header-tool .header-verdict{background:#fff!important;color:#111!important}
- .header-tool .header-cards{grid-template-columns:1fr 1fr!important}
- .header-tool .header-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important}
- .header-tool .header-auth-card,.header-tool .header-metric,.header-tool .header-panel,.header-tool .header-hop{break-inside:avoid-page;padding:12px!important}
- .header-tool .header-raw-section{display:none!important}
- .header-tool .header-panel dl{grid-template-columns:120px minmax(0,1fr)}
-}
+.header-tool form,.header-tool .ha-section{border:1px solid var(--border,#36465a);border-radius:12px;padding:clamp(1rem,2.4vw,1.5rem);margin:1.25rem 0}
+.header-tool label{display:block;font-weight:700;margin-bottom:.6rem}
+.header-tool textarea{display:block;width:100%;min-height:200px;resize:vertical;padding:1rem;background:#111b2a;border:1px solid #50627c;border-radius:8px;color:inherit;font:13px/1.55 ui-monospace,Consolas,monospace}
+.header-tool button{border:1px solid #52627a;border-radius:8px;padding:.65rem .95rem;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.header-tool button.ha-primary{background:#2867b5;border-color:#2867b5;color:#fff}
+.header-tool button:focus-visible,.header-tool textarea:focus-visible,.header-tool summary:focus-visible{outline:2px solid #80baff;outline-offset:2px}
+.header-tool .ha-muted{color:var(--muted,#aab9cb);font-size:.9rem;line-height:1.65}
+.header-tool .ha-actions,.header-tool .ha-toolbar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.header-tool .ha-toolbar{justify-content:space-between;margin:1.5rem 0}
+.header-tool .ha-toolbar h2{margin:0}
+.header-tool #ha-status{min-height:1.4rem}.header-tool #ha-status[data-error]{color:#eaa0a0}
+.header-tool .ha-section>h2{margin:0 0 1rem;font-size:1.3rem}
+.header-tool .ha-verdict{padding:1rem 1.2rem;border-left:4px solid #89a1bf;background:rgba(120,145,170,.09);border-radius:8px;line-height:1.6}
+.header-tool .ha-verdict strong{display:block;font-size:1.05rem}
+.header-tool .ha-verdict p{margin:.3rem 0 0}
+.header-tool .ha-verdict[data-state="attention"]{border-left-color:#e08780}
+.header-tool .ha-verdict[data-state="pass"]{border-left-color:#48b98a}
+.header-tool .ha-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin:1rem 0}
+.header-tool .ha-metric,.header-tool .ha-card,.header-tool .ha-hop{border:1px solid var(--border,#37485f);border-radius:9px;padding:1rem;min-width:0;overflow:hidden}
+.header-tool .ha-metric span{display:block;color:var(--muted,#abb9c9);font-size:.79rem}
+.header-tool .ha-metric strong{display:block;font-size:1.2rem;line-height:1.45;overflow-wrap:anywhere}
+.header-tool .ha-observations{display:grid;gap:.55rem}
+.header-tool .ha-observation{padding:.8rem 1rem;border:1px solid #35465c;border-radius:7px;line-height:1.55;overflow-wrap:anywhere}
+.header-tool .ha-observation[data-warning]{border-left:3px solid #d79b55}
+.header-tool .ha-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin:1rem 0}
+.header-tool .ha-card-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
+.header-tool .ha-card h3{margin:0;font-size:1rem}
+.header-tool .ha-badge{font-weight:700;font-size:.77rem;background:#2d4054;color:#dbe9f4;border-radius:5px;padding:.3rem .55rem;overflow-wrap:anywhere}
+.header-tool .ha-card[data-state="pass"] .ha-badge{background:#1c4639;color:#b5f2d4}
+.header-tool .ha-card[data-state="fail"] .ha-badge,.header-tool .ha-card[data-state="softfail"] .ha-badge,.header-tool .ha-card[data-state="permerror"] .ha-badge{background:#532b34;color:#ffd2cf}
+.header-tool .ha-pairs{display:grid;grid-template-columns:minmax(85px,120px) minmax(0,1fr);gap:.55rem .8rem;margin:.85rem 0 0;font-size:.85rem;line-height:1.5}
+.header-tool .ha-pairs dt{color:var(--muted,#a9b8c9)}.header-tool .ha-pairs dd{margin:0;overflow-wrap:anywhere;word-break:break-word}
+.header-tool .ha-explanation{padding:.8rem 1rem;border-left:3px solid #6999c6;line-height:1.6;overflow-wrap:anywhere}
+.header-tool .ha-expander{margin-top:1rem;border-top:1px solid #35465c;padding-top:1rem}
+.header-tool .ha-card details,.header-tool .ha-hop details{border-top:1px solid #35465c;margin-top:.9rem;padding-top:.7rem}
+.header-tool summary{cursor:pointer;overflow-wrap:anywhere;font-weight:600}
+.header-tool pre{margin:.65rem 0 0;max-width:100%;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-all;overflow-x:auto;font:.77rem/1.55 ui-monospace,Consolas,monospace;background:rgba(100,125,155,.13);border-radius:7px;padding:.7rem}
+.header-tool .ha-signatures{margin-top:1rem;overflow-wrap:anywhere}
+.header-tool .ha-signatures h3{font-size:1rem;margin:.6rem 0}
+.header-tool .ha-hops{display:grid;gap:.8rem}
+.header-tool .ha-hop{border-left:3px solid #5a8bbd}
+.header-tool .ha-hop[data-warning]{border-left-color:#e6a052}
+.header-tool .ha-hop h3{margin:0 0 .7rem;font-size:.95rem}
+.header-tool .ha-route{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:.65rem;align-items:center}
+.header-tool .ha-node{overflow-wrap:anywhere;word-break:break-word;font-size:.86rem;line-height:1.55}
+.header-tool .ha-node small{display:block;color:var(--muted,#a9b8c9)}
+.header-tool .ha-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin:.7rem 0}
+.header-tool .ha-tags span{border-radius:5px;background:rgba(108,137,165,.16);padding:.25rem .45rem;font-size:.79rem;overflow-wrap:anywhere}
+.header-tool .ha-identity{display:grid;grid-template-columns:minmax(105px,155px) minmax(0,1fr);margin:0}
+.header-tool .ha-identity dt,.header-tool .ha-identity dd{border-bottom:1px solid #35465c;padding:.75rem 0;overflow-wrap:anywhere;word-break:break-word}
+.header-tool .ha-identity dt{font-size:.8rem;color:var(--muted,#a9b8c9);font-weight:600}
+.header-tool .ha-identity dd{margin:0;padding-left:1rem}
+.header-tool .ha-field{display:grid;grid-template-columns:minmax(90px,175px) minmax(0,1fr);gap:.7rem;padding:.65rem 0;border-bottom:1px solid #35465c}
+.header-tool .ha-field strong{font-size:.8rem;overflow-wrap:anywhere}
+.header-tool .ha-field details{overflow-wrap:anywhere;word-break:break-all;font-size:.83rem}
+@media(max-width:780px){.header-tool .ha-cards{grid-template-columns:1fr}.header-tool .ha-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.header-tool .ha-metrics{grid-template-columns:1fr 1fr}.header-tool .ha-route,.header-tool .ha-field,.header-tool .ha-identity{grid-template-columns:1fr}.header-tool .ha-identity dt{border-bottom:0;padding-bottom:0}.header-tool .ha-identity dd{padding:.15rem 0 .75rem}}
+@media print{body{background:white!important;color:#111!important}.header-tool form,.header-tool #ha-status,.header-tool .ha-toolbar button,.header-tool .ha-fields{display:none!important}.header-tool .ha-section,.header-tool .ha-card,.header-tool .ha-hop,.header-tool .ha-metric{background:white!important;color:#111!important;border-color:#aaa!important;break-inside:avoid-page}.header-tool .ha-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.header-tool .ha-cards{grid-template-columns:1fr 1fr}.header-tool .ha-badge{background:#eee!important;color:#111!important}.header-tool .ha-muted,.header-tool dt,.header-tool .ha-metric span{color:#555!important}header,nav,footer{display:none!important}}
 </style>
-<script>
-const $=s=>document.querySelector(s);
-const form=$('#header-form'),input=$('#header-input'),status=$('#header-status'),results=$('#header-results');
-const overview=$('#header-overview'),metrics=$('#header-metrics'),verdict=$('#header-verdict'),auth=$('#header-auth'),arc=$('#header-arc'),hops=$('#header-hops'),notes=$('#header-notes'),fields=$('#header-fields');
-let summary='';
-const SAMPLE='Received: from inbound.example.net (inbound.example.net [192.0.2.20])\r\n\tby mailbox.example.org with ESMTPS id 1234; Wed, 07 Oct 2026 15:03:10 +0000\r\nReceived: from outbound.example.com (outbound.example.com [192.0.2.10])\r\n\tby inbound.example.net with ESMTPS id 5678; Wed, 07 Oct 2026 15:03:04 +0000\r\nAuthentication-Results: mailbox.example.org; spf=pass smtp.mailfrom=example.com;\r\n\tdkim=pass header.d=example.com; dmarc=pass header.from=example.com\r\nFrom: Example Sender <sender@example.com>\r\nTo: Example Recipient <recipient@example.org>\r\nSubject: Example message for header analysis\r\nDate: Wed, 07 Oct 2026 15:02:55 +0000\r\nMessage-ID: <example-1234@example.com>';
-function el(parent,tag,text='',cls=''){const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;parent.append(node);return node}
-function parse(raw){
-  const out=[];let current=null;
-  for(const line of raw.replace(/\r\n?/g,'\n').split('\n')){
-    if(!line){if(out.length)break;continue}
-    if(/^[ \t]/.test(line)){if(current)current.value+=' '+line.trim();continue}
-    const sep=line.indexOf(':');
-    if(sep<=0||!/^[!-9;-~]+$/.test(line.slice(0,sep))){if(out.length)break;continue}
-    current={name:line.slice(0,sep),value:line.slice(sep+1).trim()};out.push(current);
-  }
-  return out;
-}
-const all=(headers,name)=>headers.filter(h=>h.name.toLowerCase()===name.toLowerCase()).map(h=>h.value);
-const one=(headers,name)=>all(headers,name)[0]||'';
-function methodResults(headers,field){
-  return all(headers,field).flatMap(value=>{
-    const chunks=value.split(';');const authority=chunks.shift()?.trim()||'Unknown';
-    return chunks.map(chunk=>{
-      const match=chunk.trim().match(/^([a-z][a-z0-9_-]*)\s*=\s*([a-z0-9_-]+)/i);
-      return match?{method:match[1].toLowerCase(),result:match[2].toLowerCase(),properties:chunk.trim().slice(match[0].length).trim(),authority}:null;
-    }).filter(Boolean);
-  });
-}
-function hop(value){
- const sep=value.lastIndexOf(';'),timestamp=sep<0?'':value.slice(sep+1).trim(),parsed=timestamp?Date.parse(timestamp):NaN;
- return {from:value.match(/\bfrom\s+(.+?)(?=\s+by\s+|;|$)/i)?.[1]||'Not provided',by:value.match(/\bby\s+(.+?)(?=\s+(?:with|id|for|via)\s+|;|$)/i)?.[1]||'Not provided',protocol:value.match(/\bwith\s+([a-z0-9_-]+)/i)?.[1]||'',timestamp,ms:Number.isFinite(parsed)?parsed:null,raw:value};
-}
-function duration(sec){return sec<60?sec.toFixed(1)+' sec':sec<3600?(sec/60).toFixed(1)+' min':(sec/3600).toFixed(2)+' hr'}
-function metric(label,value){const card=el(metrics,'div','','header-metric');el(card,'span',label);el(card,'strong',value)}
-function checkCard(container,name,entries){
- const card=el(container,'article','','header-auth-card'),distinct=[...new Set(entries.map(e=>e.result))];
- el(card,'h3',name.toUpperCase());const state=distinct.length?distinct.join(' / '):'not reported';
- if(distinct.length===1)card.dataset.result=state;
- el(card,'span',state.toUpperCase(),'result-badge');
- if(!entries.length){el(card,'p','No result reported.');return}
- // Show only the receiving authority and relevant identity; long raw details stay collapsed.
- const primary=entries[0];
- el(card,'p','Reported by','auth-label');el(card,'p',primary.authority,'auth-value');
- const important=primary.properties.match(/(?:header\.from|header\.d|smtp\.mailfrom|smtp\.helo)=([^\s;]+)/i);
- if(important){el(card,'p','Identity','auth-label');el(card,'p',important[0],'auth-value')}
- if(entries.length>1)el(card,'p',entries.length+' reported results; expand to inspect all.','auth-label');
- const details=el(card,'details');el(details,'summary','View evidence');
- for(const entry of entries){el(details,'pre',entry.authority+'; '+entry.method+'='+entry.result+(entry.properties?' '+entry.properties:''))}
-}
-function analyze(){
- if(!input.value.trim()){status.textContent='Paste email headers to begin.';status.dataset.error='1';return}
- const headers=parse(input.value);
- if(!headers.length){status.textContent='No recognizable header fields found.';status.dataset.error='1';results.hidden=true;return}
- delete status.dataset.error;results.hidden=false;
- for(const area of [overview,metrics,verdict,auth,arc,hops,notes,fields])area.replaceChildren();
- const ordinary=methodResults(headers,'Authentication-Results');
- const evaluated=['spf','dkim','dmarc'].map(method=>({method,entries:methodResults(headers,'Authentication-Results').filter(x=>x.method===method)}));
- const historical=methodResults(headers,'ARC-Authentication-Results');
- const received=all(headers,'Received').map(hop).reverse();
- const valid=received.filter(h=>h.ms!==null);
- const delta=valid.length>1?valid[valid.length-1].ms-valid[0].ms:null;
- metric('Received hops',String(received.length));
- metric('Authentication checks',String(ordinary.length));
- metric('Observed transit',delta===null?'Unknown':delta<0?'Clock mismatch':duration(delta/1000));
- const reported=evaluated.filter(x=>x.entries.length);
- const failed=reported.filter(x=>x.entries.some(e=>['fail','softfail','permerror','temperror','policy'].includes(e.result)));
- const unknown=reported.length<3;
- verdict.dataset.state=failed.length?'attention':unknown?'unknown':'reported-pass';
- el(verdict,'div',failed.length?'Review reported failures':unknown?'Incomplete authentication results':'All three methods report pass','verdict-title');
- el(verdict,'p',failed.length?failed.map(x=>x.method.toUpperCase()).join(', ')+' reported failures or errors. These header claims have not been independently validated.':unknown?'One or more of SPF, DKIM and DMARC was not reported in the supplied headers.':'SPF, DKIM and DMARC report pass in the supplied headers. This is not independent verification.');
- const dl=el(overview,'dl');
- for(const [name,value] of [['From',one(headers,'From')],['To',one(headers,'To')],['Subject',one(headers,'Subject')],['Date',one(headers,'Date')],['Message-ID',one(headers,'Message-ID')],['Return-Path',one(headers,'Return-Path')]]){
-  el(dl,'dt',name);el(dl,'dd',value||'Not present');
- }
- for(const name of ['spf','dkim','dmarc'])checkCard(auth,name,ordinary.filter(x=>x.method===name));
- const arcGroup=$('.header-advanced');
- arcGroup.hidden=!historical.length&&!ordinary.some(x=>x.method==='arc');
- for(const name of ['spf','dkim','dmarc','arc']){
-  const history=historical.filter(x=>x.method===name);
-  if(history.length)checkCard(arc,name+' (ARC history)',history);
- }
- const arcResults=ordinary.filter(x=>x.method==='arc');
- if(arcResults.length)checkCard(arc,'ARC validation',arcResults);
- let slow=0,skew=0;
- received.forEach((item,index)=>{
-  const card=el(hops,'article','','header-hop');el(card,'h3','Hop '+(index+1));
-  const route=el(card,'div','','hop-route');
-  const from=el(route,'div','','node');el(from,'span','FROM','auth-label');el(from,'p',item.from);
-  el(route,'span','→','arrow');
-  const to=el(route,'div','','node');el(to,'span','BY','auth-label');el(to,'p',item.by);
-  const meta=el(card,'div','','hop-meta');
-  if(item.protocol)el(meta,'span',item.protocol.toUpperCase());
-  el(meta,'span',item.ms===null?(item.timestamp||'Time not provided'):new Date(item.ms).toLocaleString());
-  const previous=received[index-1];
-  if(previous&&previous.ms!==null&&item.ms!==null){
-   const elapsed=(item.ms-previous.ms)/1000;
-   if(elapsed<0){skew++;card.dataset.delay='invalid';el(meta,'span','Clock mismatch')}
-   else{el(meta,'span','+'+duration(elapsed));if(elapsed>300){slow++;card.dataset.delay='slow'}}
-  }
-  const detail=el(card,'details');el(detail,'summary','View raw Received field');el(detail,'pre',item.raw);
- });
- if(!received.length)el(hops,'p','No Received headers found.');
- const observations=[];
- const fail=ordinary.filter(x=>['fail','softfail','permerror','temperror','policy'].includes(x.result));
- if(fail.length)observations.push(fail.map(x=>x.method.toUpperCase()+' '+x.result.toUpperCase()).join(', ')+' reported. A DMARC fail can occur even when SPF or DKIM passes because DMARC requires identifier alignment. Check the trusted receiver and relevant identities.');
- if(!ordinary.length)observations.push('No direct Authentication-Results fields found. Authentication claims cannot be summarized from these headers.');
- if(historical.length)observations.push('ARC authentication history is available separately. ARC records earlier results; it does not itself make a failed DMARC result pass.');
- if(slow)observations.push(slow+' delivery interval(s) over five minutes based on supplied timestamps. Verify against mail-server logs.');
- if(skew)observations.push(skew+' delivery interval(s) have out-of-order timestamps. Clock skew or untrusted fields may explain this.');
- if(!received.length)observations.push('Delivery path unavailable because Received headers are missing.');
- if(observations.length===0)observations.push('No obvious issues identified in the parsed headers.');
- observations.push('Header values can be spoofed. This analyzer does not independently validate SPF, DKIM, DMARC or message safety.');
- for(const observation of observations)el(notes,'li',observation);
- for(const header of headers){
- const row=el(fields,'div','','header-field-row');
- el(row,'div',header.name,'header-field-name');
- const content=el(row,'div','','header-field-value');
- const detail=el(content,'details');
- el(detail,'summary',header.value.length>220?header.value.slice(0,220)+'…':header.value);
- el(detail,'pre',header.value);
- }
- summary=['Email header analysis','From: '+one(headers,'From'),'Subject: '+one(headers,'Subject'),'Received hops: '+received.length,'Observed transit: '+(delta===null?'unknown':delta<0?'clock mismatch':duration(delta/1000)),...['spf','dkim','dmarc'].map(name=>name.toUpperCase()+': '+(ordinary.filter(x=>x.method===name).map(x=>x.result).join(', ')||'not reported')),...observations].join('\n');
- status.textContent='Parsed '+headers.length+' header fields locally; no data uploaded.';
-}
-form.addEventListener('submit',e=>{e.preventDefault();analyze()});
-$('#header-clear').addEventListener('click',()=>{input.value='';results.hidden=true;summary='';status.textContent='Cleared.';input.focus()});
-$('#header-sample').addEventListener('click',()=>{input.value=SAMPLE;analyze()});
-$('#header-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(summary);status.textContent='Summary copied.'}catch{status.textContent='Could not access clipboard.'}});
-</script>
