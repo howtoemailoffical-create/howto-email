@@ -14,14 +14,14 @@ import Base from '../../layouts/Base.astro';
 </form>
 <p id="header-status" role="status" aria-live="polite"></p>
 <section id="header-results" hidden aria-labelledby="header-results-title">
-<div class="header-results-head"><div><p class="kicker">ANALYSIS</p><h2 id="header-results-title">Message overview</h2></div><button type="button" id="header-copy">Copy summary</button></div>
+<div class="header-results-head"><div><p class="kicker">ANALYSIS</p><h2 id="header-results-title">Email header results</h2></div><button type="button" id="header-copy">Copy summary</button></div>
 <div id="header-verdict" class="header-verdict" role="status"></div><div id="header-metrics" class="header-metrics"></div><div id="header-overview" class="header-panel"></div>
-<h2>Authentication results</h2>
+<h2>Authentication</h2>
 <p class="tool-note">These are claims in the supplied headers, not independently verified authentication results. ARC is reported separately from SPF, DKIM, and DMARC.</p><div id="header-auth" class="header-cards"></div><details class="header-advanced"><summary>ARC authentication history (if present)</summary><div id="header-arc" class="header-cards"></div></details>
-<h2>Delivery path</h2>
+<h2>Delivery timeline</h2>
 <p class="tool-note">Received headers are usually prepended by each server, so the oldest hop appears first below. Header timestamps and hostnames are supplied by mail systems and may be inaccurate or forged. Trust results only from systems you control.</p>
 <div id="header-hops" class="header-hops"></div>
-<h2>Observations</h2>
+<h2>Summary observations</h2>
 <ul id="header-notes" class="header-observations"></ul>
 <details class="header-raw-section"><summary>All parsed header fields</summary><div id="header-fields" class="header-fields"></div></details>
 <p class="tool-note">This tool parses header text; it does not verify DKIM signatures, query DNS, determine whether mail is malicious, or prove that an authentication result is trustworthy. <a href="/reference/dmarc/">DMARC reference →</a></p>
