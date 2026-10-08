@@ -17,7 +17,7 @@ import Base from '../../layouts/Base.astro';
 <div class="header-results-head"><div><p class="kicker">ANALYSIS</p><h2 id="header-results-title">Message overview</h2></div><button type="button" id="header-copy">Copy summary</button></div>
 <div id="header-metrics" class="header-metrics"></div><div id="header-overview" class="header-panel"></div>
 <h2>Authentication results</h2>
-<p class="tool-note">These are claims in the supplied headers, not independently verified authentication results. ARC is reported separately from SPF, DKIM, and DMARC.</p><div id="header-auth" class="header-cards"></div>
+<p class="tool-note">These are claims in the supplied headers, not independently verified authentication results. ARC is reported separately from SPF, DKIM, and DMARC.</p><div id="header-auth" class="header-cards"></div><details class="header-advanced"><summary>ARC authentication history (if present)</summary><div id="header-arc" class="header-cards"></div></details>
 <h2>Delivery path</h2>
 <p class="tool-note">Received headers are usually prepended by each server, so the oldest hop appears first below. Header timestamps and hostnames are supplied by mail systems and may be inaccurate or forged. Trust results only from systems you control.</p>
 <div id="header-hops" class="header-hops"></div>
@@ -29,148 +29,156 @@ import Base from '../../layouts/Base.astro';
 </section>
 </Base>
 <style>
-.header-tool{max-width:1060px}.header-tool form{margin:2rem 0 1rem;border:1px solid #354155;border-radius:12px;padding:1.25rem}.header-tool label{display:block;font-weight:650;margin-bottom:.6rem}.header-tool textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:220px;background:#0d1725;color:inherit;border:1px solid #526079;border-radius:8px;padding:1rem;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.header-actions,.header-results-head{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}.header-results-head{justify-content:space-between}.header-tool button{background:#111e2e;border:1px solid #51627b;border-radius:8px;color:inherit;font:inherit;padding:.7rem 1rem;cursor:pointer}.header-tool button.primary{background:#2867b5;border-color:#2867b5;color:#fff}.header-tool button:focus-visible,.header-tool textarea:focus-visible{outline:2px solid #6bb5ff;outline-offset:2px}.header-panel,.header-auth-card,.header-hop{border:1px solid #354155;border-radius:12px;padding:1rem;background:#0c1521;min-width:0}.header-panel{margin:1rem 0}.header-panel dl{display:grid;grid-template-columns:140px minmax(0,1fr);gap:.55rem 1rem;margin:0}.header-panel dt{color:#a5b8ce}.header-panel dd{margin:0;overflow-wrap:anywhere}.header-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.8rem}.header-auth-card h3{margin:0 0 .35rem}.header-auth-card p{margin:.25rem 0;overflow-wrap:anywhere}.header-auth-card small{color:#a9b8c9}.header-auth-card[data-result="pass"]{border-left:3px solid #55c49a}.header-auth-card[data-result="fail"],.header-auth-card[data-result="permerror"]{border-left:3px solid #e79a7c}.header-hops{display:grid;gap:.8rem}.header-hop h3{margin:0 0 .45rem;font-size:1rem}.header-hop p{margin:.35rem 0;overflow-wrap:anywhere}.header-hop pre,.header-fields pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem;background:#080f1a;border-radius:7px;padding:.8rem}.header-fields{display:grid;gap:.5rem}.header-fields details{border-bottom:1px solid #344155;padding:.5rem}.header-tool #header-status{min-height:1.5em}.header-tool #header-status[data-error]{color:#ffa3a3}@media(max-width:620px){.header-panel dl{grid-template-columns:1fr;gap:.2rem}.header-panel dt{margin-top:.55rem}}
-
-.header-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;margin:1.2rem 0}
-.header-metric{border:1px solid #36465a;border-radius:12px;padding:1rem;background:#111d2d}
-.header-metric strong{display:block;font-size:1.5rem;line-height:1.3;overflow-wrap:anywhere}
-.header-metric span{display:block;color:#aabbd0;font-size:.85rem;margin-bottom:.35rem}
-.header-auth-card .auth-result{display:inline-block;font-weight:750;font-size:.88rem;letter-spacing:.03em;padding:.3rem .6rem;border-radius:6px;background:#27364a;margin:.25rem 0 .65rem}
-.header-auth-card[data-result="pass"] .auth-result{background:#123c32;color:#9ae5c6}
-.header-auth-card[data-result="fail"] .auth-result,.header-auth-card[data-result="permerror"] .auth-result,.header-auth-card[data-result="softfail"] .auth-result{background:#4c2929;color:#ffb3a7}
-.header-auth-card .auth-evidence{font-size:.85rem;white-space:pre-wrap;overflow-wrap:anywhere;color:#aabbd0;margin:.5rem 0}
-.header-hop{border-left:3px solid #4679a8}
-.header-hop[data-delay="slow"]{border-left-color:#e5a35e}
-.header-hop[data-delay="invalid"]{border-left-color:#e87878}
-.header-hop .hop-meta{display:flex;gap:.5rem;flex-wrap:wrap;margin:.6rem 0}
-.header-hop .hop-meta span{border-radius:6px;padding:.25rem .5rem;background:#243349;font-size:.82rem}
-.header-observations{padding-left:1.3rem}
-.header-observations li{margin:.7rem 0;line-height:1.6}
-.header-tool details summary{cursor:pointer}
+.header-tool{max-width:1060px}
+.header-tool form{margin:1.5rem 0;border:1px solid var(--border,#354155);border-radius:12px;padding:1.2rem}
+.header-tool label{display:block;font-weight:650;margin-bottom:.6rem}
+.header-tool textarea{box-sizing:border-box;display:block;width:100%;min-height:180px;resize:vertical;border:1px solid #526079;border-radius:8px;padding:1rem;background:#101a29;color:inherit;font:13px/1.5 ui-monospace,Consolas,monospace}
+.header-tool button{border:1px solid #526079;border-radius:8px;padding:.65rem 1rem;color:inherit;background:transparent;cursor:pointer;font:inherit}
+.header-tool button.primary{color:#fff;background:#2867b5;border-color:#2867b5}
+.header-tool button:focus-visible,.header-tool textarea:focus-visible,.header-tool summary:focus-visible{outline:2px solid #72b8ff;outline-offset:2px}
+.header-actions,.header-results-head{display:flex;gap:.65rem;align-items:center;flex-wrap:wrap}
+.header-results-head{justify-content:space-between;margin:1rem 0}
+.header-tool #header-status{min-height:1.5em}.header-tool #header-status[data-error]{color:#e99898}
 .header-tool [hidden]{display:none!important}
+.header-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin:1rem 0}
+.header-metric,.header-panel,.header-auth-card,.header-hop{min-width:0;border:1px solid var(--border,#354155);border-radius:10px;padding:1rem;background:var(--card,#101a29)}
+.header-metric span{display:block;font-size:.8rem;color:var(--muted,#9cacbd)}.header-metric strong{display:block;font-size:1.45rem;line-height:1.35;overflow-wrap:anywhere}
+.header-panel{margin:1rem 0}.header-panel dl{display:grid;grid-template-columns:125px minmax(0,1fr);gap:.6rem 1rem;margin:0}.header-panel dt{color:var(--muted,#a2afbf)}.header-panel dd{margin:0;overflow-wrap:anywhere;word-break:break-word}
+.header-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}
+.header-auth-card{overflow:hidden}.header-auth-card h3{margin:0 0 .6rem;font-size:1rem}
+.header-auth-card .result-badge{display:inline-block;border-radius:6px;padding:.3rem .6rem;font-size:.8rem;font-weight:750;background:#27364a;color:#dbe7f5}
+.header-auth-card[data-result="pass"]{border-top:3px solid #34aa83}.header-auth-card[data-result="pass"] .result-badge{background:#174236;color:#a7eccc}
+.header-auth-card[data-result="fail"],.header-auth-card[data-result="softfail"],.header-auth-card[data-result="permerror"]{border-top:3px solid #db7772}
+.header-auth-card[data-result="fail"] .result-badge,.header-auth-card[data-result="softfail"] .result-badge,.header-auth-card[data-result="permerror"] .result-badge{background:#542b30;color:#ffc8c3}
+.header-auth-card p{margin:.6rem 0 .3rem;overflow-wrap:anywhere;word-break:break-word;font-size:.87rem}
+.header-auth-card .auth-label{color:var(--muted,#9cacbd);font-size:.77rem;margin-top:.8rem}
+.header-auth-card .auth-value{font-size:.88rem;font-weight:600}
+.header-auth-card details{margin-top:.75rem}.header-auth-card pre,.header-hop pre,.header-fields pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;font-size:.76rem;line-height:1.5;background:rgba(110,128,152,.1);padding:.7rem;border-radius:7px}
+.header-advanced{margin:.8rem 0 1.6rem}
+.header-hops{display:grid;gap:.7rem}.header-hop{border-left:3px solid #4c84b8}
+.header-hop[data-delay="slow"]{border-left-color:#d49b56}.header-hop[data-delay="invalid"]{border-left-color:#d87777}
+.header-hop h3{margin:0 0 .6rem;font-size:1rem}.header-hop p{margin:.35rem 0;overflow-wrap:anywhere}
+.hop-route{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.6rem}.hop-route .node{min-width:0;overflow-wrap:anywhere;font-size:.87rem}.hop-route .arrow{color:var(--muted,#9cacbd)}
+.hop-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin:.8rem 0}.hop-meta span{background:rgba(100,126,157,.15);padding:.25rem .5rem;border-radius:5px;font-size:.8rem}
+.header-tool details summary{cursor:pointer}.header-fields details{padding:.5rem 0;border-bottom:1px solid var(--border,#354155)}
+.header-observations{padding-left:1.2rem}.header-observations li{margin:.65rem 0;line-height:1.55}
+.header-tool h2{margin-top:2rem}
+@media(max-width:720px){.header-cards{grid-template-columns:1fr}.header-metrics{grid-template-columns:1fr 1fr}.header-panel dl{grid-template-columns:1fr;gap:.15rem}.header-panel dt:not(:first-child){margin-top:.65rem}.hop-route{grid-template-columns:1fr}.hop-route .arrow{transform:rotate(90deg);justify-self:start}}
+@media print{body{background:#fff!important;color:#111!important}.header-tool{max-width:none}.header-tool form,.header-tool #header-status,.header-tool #header-copy,.header-tool .header-advanced,.header-tool .header-fields{display:none!important}.header-metric,.header-panel,.header-auth-card,.header-hop{background:#fff!important;color:#111!important;border:1px solid #b6b6b6!important;break-inside:avoid}.header-tool .result-badge{background:#eee!important;color:#111!important}.header-tool .auth-label,.header-tool dt,.header-tool .header-metric span{color:#555!important}.header-tool pre{color:#222!important}.header-tool details:not([open]) pre{display:none}.header-tool .header-cards{grid-template-columns:repeat(3,minmax(0,1fr))}header,nav,footer{display:none!important}.header-tool{padding:0!important}}
 </style>
 <script>
-const form=document.querySelector('#header-form');
-const input=document.querySelector('#header-input');
-const status=document.querySelector('#header-status');
-const results=document.querySelector('#header-results');
-const overview=document.querySelector('#header-overview');
-const metrics=document.querySelector('#header-metrics');
-const auth=document.querySelector('#header-auth');
-const hops=document.querySelector('#header-hops');
-const notes=document.querySelector('#header-notes');
-const fields=document.querySelector('#header-fields');
+const $=s=>document.querySelector(s);
+const form=$('#header-form'),input=$('#header-input'),status=$('#header-status'),results=$('#header-results');
+const overview=$('#header-overview'),metrics=$('#header-metrics'),auth=$('#header-auth'),arc=$('#header-arc'),hops=$('#header-hops'),notes=$('#header-notes'),fields=$('#header-fields');
 let summary='';
 const SAMPLE='Received: from inbound.example.net (inbound.example.net [192.0.2.20])\r\n\tby mailbox.example.org with ESMTPS id 1234; Wed, 07 Oct 2026 15:03:10 +0000\r\nReceived: from outbound.example.com (outbound.example.com [192.0.2.10])\r\n\tby inbound.example.net with ESMTPS id 5678; Wed, 07 Oct 2026 15:03:04 +0000\r\nAuthentication-Results: mailbox.example.org; spf=pass smtp.mailfrom=example.com;\r\n\tdkim=pass header.d=example.com; dmarc=pass header.from=example.com\r\nFrom: Example Sender <sender@example.com>\r\nTo: Example Recipient <recipient@example.org>\r\nSubject: Example message for header analysis\r\nDate: Wed, 07 Oct 2026 15:02:55 +0000\r\nMessage-ID: <example-1234@example.com>';
-function parseHeaders(raw){
+function el(parent,tag,text='',cls=''){const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;parent.append(node);return node}
+function parse(raw){
   const out=[];let current=null;
   for(const line of raw.replace(/\r\n?/g,'\n').split('\n')){
-    if(line===''){if(out.length)break;continue}
+    if(!line){if(out.length)break;continue}
     if(/^[ \t]/.test(line)){if(current)current.value+=' '+line.trim();continue}
-    const colon=line.indexOf(':');
-    if(colon<=0||!/^[!-9;-~]+$/.test(line.slice(0,colon))){if(out.length)break;continue}
-    current={name:line.slice(0,colon),value:line.slice(colon+1).trim()};out.push(current);
+    const sep=line.indexOf(':');
+    if(sep<=0||!/^[!-9;-~]+$/.test(line.slice(0,sep))){if(out.length)break;continue}
+    current={name:line.slice(0,sep),value:line.slice(sep+1).trim()};out.push(current);
   }
   return out;
 }
-const get=(items,name)=>items.filter(x=>x.name.toLowerCase()===name.toLowerCase()).map(x=>x.value);
-const first=(items,name)=>get(items,name)[0]||'';
-function add(parent,tag,value,cls){const node=document.createElement(tag);node.textContent=value;if(cls)node.className=cls;parent.append(node);return node}
-function authChecks(items){
-  const sources=[
-    ...get(items,'Authentication-Results').map(value=>({value,type:'Authentication-Results'})),
-    ...get(items,'ARC-Authentication-Results').map(value=>({value,type:'ARC-Authentication-Results'}))
-  ];
-  return ['spf','dkim','dmarc','arc'].map(name=>{
-    const found=[];
-    for(const source of sources){
-      // Authentication-Results method names follow semicolon delimiters.
-      const re=new RegExp('(?:^|;)\\s*'+name+'\\s*=\\s*([a-z0-9_-]+)','gi');
-      let match;
-      while((match=re.exec(source.value))!==null){
-        const details=source.value.slice(match.index+match[0].length).split(';')[0].trim();
-        found.push({result:match[1].toLowerCase(),details,source:source.type,authority:source.value.split(';')[0].trim()});
-      }
-    }
-    return {name,found};
+const all=(headers,name)=>headers.filter(h=>h.name.toLowerCase()===name.toLowerCase()).map(h=>h.value);
+const one=(headers,name)=>all(headers,name)[0]||'';
+function methodResults(headers,field){
+  return all(headers,field).flatMap(value=>{
+    const chunks=value.split(';');const authority=chunks.shift()?.trim()||'Unknown';
+    return chunks.map(chunk=>{
+      const match=chunk.trim().match(/^([a-z][a-z0-9_-]*)\s*=\s*([a-z0-9_-]+)/i);
+      return match?{method:match[1].toLowerCase(),result:match[2].toLowerCase(),properties:chunk.trim().slice(match[0].length).trim(),authority}:null;
+    }).filter(Boolean);
   });
 }
-function parseHop(value){
-  const semi=value.lastIndexOf(';');
-  const stamp=semi<0?'':value.slice(semi+1).trim();
-  const parsed=stamp?Date.parse(stamp):NaN;
-  const from=value.match(/\bfrom\s+(.+?)(?=\s+by\s+|;|$)/i)?.[1]||'Not specified';
-  const by=value.match(/\bby\s+(.+?)(?=\s+(?:with|id|for|via)\s+|;|$)/i)?.[1]||'Not specified';
-  const protocol=value.match(/\bwith\s+([a-z0-9_-]+)/i)?.[1]||'';
-  return {from,by,protocol,stamp,ms:Number.isFinite(parsed)?parsed:null,raw:value};
+function hop(value){
+ const sep=value.lastIndexOf(';'),timestamp=sep<0?'':value.slice(sep+1).trim(),parsed=timestamp?Date.parse(timestamp):NaN;
+ return {from:value.match(/\bfrom\s+(.+?)(?=\s+by\s+|;|$)/i)?.[1]||'Not provided',by:value.match(/\bby\s+(.+?)(?=\s+(?:with|id|for|via)\s+|;|$)/i)?.[1]||'Not provided',protocol:value.match(/\bwith\s+([a-z0-9_-]+)/i)?.[1]||'',timestamp,ms:Number.isFinite(parsed)?parsed:null,raw:value};
 }
-function duration(seconds){if(seconds<60)return seconds.toFixed(1)+' sec';if(seconds<3600)return (seconds/60).toFixed(1)+' min';return (seconds/3600).toFixed(2)+' hr'}
-function metric(label,value){const el=add(metrics,'div','','header-metric');add(el,'span',label);add(el,'strong',value)}
+function duration(sec){return sec<60?sec.toFixed(1)+' sec':sec<3600?(sec/60).toFixed(1)+' min':(sec/3600).toFixed(2)+' hr'}
+function metric(label,value){const card=el(metrics,'div','','header-metric');el(card,'span',label);el(card,'strong',value)}
+function checkCard(container,name,entries){
+ const card=el(container,'article','','header-auth-card'),distinct=[...new Set(entries.map(e=>e.result))];
+ el(card,'h3',name.toUpperCase());const state=distinct.length?distinct.join(' / '):'not reported';
+ if(distinct.length===1)card.dataset.result=state;
+ el(card,'span',state.toUpperCase(),'result-badge');
+ if(!entries.length){el(card,'p','No result reported.');return}
+ // Show only the receiving authority and relevant identity; long raw details stay collapsed.
+ const primary=entries[0];
+ el(card,'p','Reported by','auth-label');el(card,'p',primary.authority,'auth-value');
+ const important=primary.properties.match(/(?:header\.from|header\.d|smtp\.mailfrom|smtp\.helo)=([^\s;]+)/i);
+ if(important){el(card,'p','Identity','auth-label');el(card,'p',important[0],'auth-value')}
+ if(entries.length>1)el(card,'p',entries.length+' reported results; expand to inspect all.','auth-label');
+ const details=el(card,'details');el(details,'summary','View evidence');
+ for(const entry of entries){el(details,'pre',entry.authority+'; '+entry.method+'='+entry.result+(entry.properties?' '+entry.properties:''))}
+}
 function analyze(){
-  if(!input.value.trim()){status.textContent='Paste raw email headers first.';status.dataset.error='true';return}
-  const items=parseHeaders(input.value);
-  if(!items.length){status.textContent='No valid header fields found. Paste original raw headers.';status.dataset.error='true';results.hidden=true;return}
-  delete status.dataset.error;
-  results.hidden=false;
-  for(const node of [overview,metrics,auth,hops,notes,fields])node.replaceChildren();
-  const received=get(items,'Received').map(parseHop).reverse();
-  const checks=authChecks(items);
-  const dated=received.filter(h=>h.ms!==null);
-  const total=dated.length>1?dated[dated.length-1].ms-dated[0].ms:null;
-  metric('Received hops',String(received.length));
-  metric('Authentication checks',String(checks.reduce((n,c)=>n+c.found.length,0)));
-  metric('Observed transit time',total===null?'Unknown':total<0?'Clock mismatch':duration(total/1000));
-  const dl=add(overview,'dl','');
-  for(const [label,value] of [['From',first(items,'From')||'Not present'],['To',first(items,'To')||'Not present'],['Subject',first(items,'Subject')||'Not present'],['Date',first(items,'Date')||'Not present'],['Message-ID',first(items,'Message-ID')||'Not present'],['Return-Path',first(items,'Return-Path')||'Not present']]){
-    add(dl,'dt',label);add(dl,'dd',value);
+ if(!input.value.trim()){status.textContent='Paste email headers to begin.';status.dataset.error='1';return}
+ const headers=parse(input.value);
+ if(!headers.length){status.textContent='No recognizable header fields found.';status.dataset.error='1';results.hidden=true;return}
+ delete status.dataset.error;results.hidden=false;
+ for(const area of [overview,metrics,auth,arc,hops,notes,fields])area.replaceChildren();
+ const ordinary=methodResults(headers,'Authentication-Results');
+ const historical=methodResults(headers,'ARC-Authentication-Results');
+ const received=all(headers,'Received').map(hop).reverse();
+ const valid=received.filter(h=>h.ms!==null);
+ const delta=valid.length>1?valid[valid.length-1].ms-valid[0].ms:null;
+ metric('Received hops',String(received.length));
+ metric('Authentication checks',String(ordinary.length));
+ metric('Observed transit',delta===null?'Unknown':delta<0?'Clock mismatch':duration(delta/1000));
+ const dl=el(overview,'dl');
+ for(const [name,value] of [['From',one(headers,'From')],['To',one(headers,'To')],['Subject',one(headers,'Subject')],['Date',one(headers,'Date')],['Message-ID',one(headers,'Message-ID')],['Return-Path',one(headers,'Return-Path')]]){
+  el(dl,'dt',name);el(dl,'dd',value||'Not present');
+ }
+ for(const name of ['spf','dkim','dmarc'])checkCard(auth,name,ordinary.filter(x=>x.method===name));
+ const arcGroup=$('.header-advanced');
+ arcGroup.hidden=!historical.length&&!ordinary.some(x=>x.method==='arc');
+ for(const name of ['spf','dkim','dmarc','arc']){
+  const history=historical.filter(x=>x.method===name);
+  if(history.length)checkCard(arc,name+' (ARC history)',history);
+ }
+ const arcResults=ordinary.filter(x=>x.method==='arc');
+ if(arcResults.length)checkCard(arc,'ARC validation',arcResults);
+ let slow=0,skew=0;
+ received.forEach((item,index)=>{
+  const card=el(hops,'article','','header-hop');el(card,'h3','Hop '+(index+1));
+  const route=el(card,'div','','hop-route');
+  const from=el(route,'div','','node');el(from,'span','FROM','auth-label');el(from,'p',item.from);
+  el(route,'span','→','arrow');
+  const to=el(route,'div','','node');el(to,'span','BY','auth-label');el(to,'p',item.by);
+  const meta=el(card,'div','','hop-meta');
+  if(item.protocol)el(meta,'span',item.protocol.toUpperCase());
+  el(meta,'span',item.ms===null?(item.timestamp||'Time not provided'):new Date(item.ms).toLocaleString());
+  const previous=received[index-1];
+  if(previous&&previous.ms!==null&&item.ms!==null){
+   const elapsed=(item.ms-previous.ms)/1000;
+   if(elapsed<0){skew++;card.dataset.delay='invalid';el(meta,'span','Clock mismatch')}
+   else{el(meta,'span','+'+duration(elapsed));if(elapsed>300){slow++;card.dataset.delay='slow'}}
   }
-  for(const check of checks){
-    const card=add(auth,'article','','header-auth-card');
-    add(card,'h3',check.name.toUpperCase());
-    const distinct=[...new Set(check.found.map(f=>f.result))];
-    if(distinct.length===1)card.dataset.result=distinct[0];
-    add(card,'div',distinct.length?distinct.join(' / ').toUpperCase():'NOT REPORTED','auth-result');
-    if(!check.found.length){add(card,'p','No result found in the supplied Authentication-Results fields.');continue}
-    for(const finding of check.found){
-      add(card,'p',(finding.authority||'Unknown authority')+' · '+finding.source);
-      if(finding.details)add(card,'div',finding.details,'auth-evidence');
-    }
-  }
-  let slow=0,skew=0;
-  for(let i=0;i<received.length;i++){
-    const hop=received[i],previous=received[i-1];
-    const card=add(hops,'article','','header-hop');
-    add(card,'h3','Hop '+(i+1));
-    add(card,'p','From: '+hop.from);
-    add(card,'p','By: '+hop.by);
-    const meta=add(card,'div','','hop-meta');
-    if(hop.protocol)add(meta,'span',hop.protocol.toUpperCase());
-    if(hop.ms!==null)add(meta,'span',new Date(hop.ms).toLocaleString());
-    else add(meta,'span',hop.stamp?'Unparseable timestamp':'Timestamp missing');
-    if(previous&&previous.ms!==null&&hop.ms!==null){
-      const diff=(hop.ms-previous.ms)/1000;
-      if(diff<0){skew++;card.dataset.delay='invalid';add(meta,'span','Clock mismatch')}
-      else{add(meta,'span','+'+duration(diff));if(diff>300){slow++;card.dataset.delay='slow'}}
-    }
-    const details=add(card,'details','');add(details,'summary','Show original Received header');add(details,'pre',hop.raw);
-  }
-  if(!received.length)add(hops,'p','No Received headers were supplied.');
-  const observations=[];
-  if(!get(items,'Authentication-Results').length)observations.push('No Authentication-Results field was provided. SPF, DKIM and DMARC cannot be assessed from the supplied headers.');
-  if(checks.some(c=>c.found.some(f=>['fail','softfail','permerror','temperror','policy'].includes(f.result))))observations.push('One or more authentication methods reported a failure or error. Confirm the result came from your trusted receiving system before investigating.');
-  if(checks.some(c=>new Set(c.found.map(f=>f.result)).size>1))observations.push('Conflicting authentication results were reported. Different receivers or forwarding hops may have performed separate checks.');
-  if(slow)observations.push(slow+' hop interval(s) exceeded five minutes according to the supplied timestamps. Review server logs to confirm delays.');
-  if(skew)observations.push(skew+' hop interval(s) had timestamps moving backward. Clock skew, header ordering or untrusted headers may explain this.');
-  if(!received.length)observations.push('No Received headers were supplied, so a delivery path cannot be reconstructed.');
-  if(!observations.length)observations.push('No obvious anomalies were identified in the parsed fields. This does not prove the message is safe or authenticated.');
-  observations.push('Received and Authentication-Results fields can be forged. Treat this as a reading aid, not a definitive verdict.');
-  for(const item of observations)add(notes,'li',item);
-  for(const item of items){const detail=add(fields,'details','');add(detail,'summary',item.name);add(detail,'pre',item.value)}
-  summary=['Email header analysis','From: '+first(items,'From'),'Subject: '+first(items,'Subject'),'Received hops: '+received.length,'Observed transit: '+(total===null?'unknown':total<0?'clock mismatch':duration(total/1000)),...checks.map(c=>c.name.toUpperCase()+': '+(c.found.map(f=>f.result).join(', ')||'not reported')),...observations].join('\n');
-  status.textContent='Analyzed '+items.length+' header fields and '+received.length+' Received hops locally in your browser.';
+  const detail=el(card,'details');el(detail,'summary','View raw Received field');el(detail,'pre',item.raw);
+ });
+ if(!received.length)el(hops,'p','No Received headers found.');
+ const observations=[];
+ const fail=ordinary.filter(x=>['fail','softfail','permerror','temperror','policy'].includes(x.result));
+ if(fail.length)observations.push(fail.map(x=>x.method.toUpperCase()+' '+x.result.toUpperCase()).join(', ')+' reported. A DMARC fail can occur even when SPF or DKIM passes because DMARC requires identifier alignment. Check the trusted receiver and relevant identities.');
+ if(!ordinary.length)observations.push('No direct Authentication-Results fields found. Authentication claims cannot be summarized from these headers.');
+ if(historical.length)observations.push('ARC authentication history is available separately. ARC records earlier results; it does not itself make a failed DMARC result pass.');
+ if(slow)observations.push(slow+' delivery interval(s) over five minutes based on supplied timestamps. Verify against mail-server logs.');
+ if(skew)observations.push(skew+' delivery interval(s) have out-of-order timestamps. Clock skew or untrusted fields may explain this.');
+ if(!received.length)observations.push('Delivery path unavailable because Received headers are missing.');
+ if(observations.length===0)observations.push('No obvious issues identified in the parsed headers.');
+ observations.push('Header values can be spoofed. This analyzer does not independently validate SPF, DKIM, DMARC or message safety.');
+ for(const observation of observations)el(notes,'li',observation);
+ for(const header of headers){const d=el(fields,'details');el(d,'summary',header.name);el(d,'pre',header.value)}
+ summary=['Email header analysis','From: '+one(headers,'From'),'Subject: '+one(headers,'Subject'),'Received hops: '+received.length,'Observed transit: '+(delta===null?'unknown':delta<0?'clock mismatch':duration(delta/1000)),...['spf','dkim','dmarc'].map(name=>name.toUpperCase()+': '+(ordinary.filter(x=>x.method===name).map(x=>x.result).join(', ')||'not reported')),...observations].join('\n');
+ status.textContent='Parsed '+headers.length+' header fields locally; no data uploaded.';
 }
-form.addEventListener('submit',event=>{event.preventDefault();analyze()});
-document.querySelector('#header-clear').addEventListener('click',()=>{input.value='';results.hidden=true;summary='';status.textContent='Cleared.';input.focus()});
-document.querySelector('#header-sample').addEventListener('click',()=>{input.value=SAMPLE;analyze()});
-document.querySelector('#header-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(summary);status.textContent='Summary copied.'}catch{status.textContent='Clipboard unavailable. Copy the visible results manually.'}});
+form.addEventListener('submit',e=>{e.preventDefault();analyze()});
+$('#header-clear').addEventListener('click',()=>{input.value='';results.hidden=true;summary='';status.textContent='Cleared.';input.focus()});
+$('#header-sample').addEventListener('click',()=>{input.value=SAMPLE;analyze()});
+$('#header-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(summary);status.textContent='Summary copied.'}catch{status.textContent='Could not access clipboard.'}});
 </script>
