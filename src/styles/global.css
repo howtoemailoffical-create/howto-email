@@ -14,3 +14,18 @@ html{overflow-x:hidden;-webkit-text-size-adjust:100%}body,main{min-width:0}body{
 @media(max-width:650px){.finding,.assessment,.domain-form,.raw-results{padding-left:14px;padding-right:14px}.finding-top,.record-head,.spf-node-head{align-items:flex-start;flex-direction:column}.finding-state{align-self:flex-start}.evidence-grid{display:grid;grid-template-columns:minmax(0,1fr)}.spf-node{margin-left:min(calc(var(--depth) * 6px),24px);padding-left:8px}.result-actions,.raw-actions{justify-content:flex-start}.home-intro h1{font-size:clamp(2.55rem,14vw,4rem)}.task-grid a{min-height:0}.footer-row nav{gap:8px 18px}.footer-row nav a{min-height:44px;display:flex;align-items:center}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 @media(forced-colors:active){.card,.finding,.assessment,.record-box,.domain-form,.task-grid,.library-rows{border-color:CanvasText}.action-check{border-color:CanvasText}}
+
+/* P0: preserve readable, reflowing analyzer evidence at narrow widths and high zoom. */
+.domain-tool,.header-tool,.tool-results,.ha-results,.ha-section,.ha-card,.ha-hop,.ha-field,.ha-identity,.finding,.record-box{min-width:0;max-width:100%}
+.domain-tool :is(pre,code),.header-tool :is(pre,code){overflow-wrap:anywhere}
+.domain-tool pre,.header-tool pre{max-width:100%;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.domain-tool :is(.result-actions,.raw-actions),.header-tool :is(.ha-actions,.ha-toolbar){flex-wrap:wrap;min-width:0}
+.domain-tool button,.header-tool button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.header-tool :is(.ha-metrics,.ha-cards,.ha-route,.ha-pairs,.ha-field,.ha-identity){min-width:0}
+.header-tool :is(.ha-node,.ha-pairs dd,.ha-field details,.ha-identity dd){overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:480px){
+ .header-tool .ha-metrics,.header-tool .ha-cards,.header-tool .ha-route,.header-tool .ha-pairs,.header-tool .ha-field,.header-tool .ha-identity{grid-template-columns:minmax(0,1fr)}
+ .header-tool .ha-identity dd{padding-left:0}
+ .header-tool .ha-route{gap:.35rem}
+ .domain-tool .result-actions,.header-tool .ha-actions{align-items:stretch}
+}
