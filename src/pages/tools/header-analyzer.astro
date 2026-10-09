@@ -109,7 +109,7 @@ const $=s=>document.querySelector(s);
 const input=$('#ha-input'),status=$('#ha-status'),results=$('#ha-results');
 const ids=['verdict','metrics','observations','auth','alignment','arc','signatures','hops','identity','fields'];
 const areas=Object.fromEntries(ids.map(k=>[k,$('#ha-'+k)]));
-let report='';
+let report='',analysisSequence=0;
 const SAMPLE=['Received: from relay.example.net (relay.example.net [192.0.2.20])',' by inbox.example.org with ESMTPS; Wed, 07 Oct 2026 15:03:10 +0000','Received: from sender.example.com (sender.example.com [192.0.2.10])',' by relay.example.net with ESMTPS; Wed, 07 Oct 2026 15:03:04 +0000','Authentication-Results: inbox.example.org; spf=pass smtp.mailfrom=example.com;',' dkim=pass header.d=example.com; dmarc=pass header.from=example.com','DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=mail; bh=EXAMPLE; b=EXAMPLE','From: Example Sender <sender@example.com>','To: Example Recipient <recipient@example.org>','Subject: Synthetic example','Date: Wed, 07 Oct 2026 15:02:55 +0000','Message-ID: <demo@example.com>'].join('\r\n');
 function el(parent,tag,text='',klass=''){const e=document.createElement(tag);e.textContent=String(text);if(klass)e.className=klass;parent.append(e);return e}
 function field(dl,label,value){el(dl,'dt',label);el(dl,'dd',value||'Not present')}
@@ -127,9 +127,11 @@ function address(value){if(Array.isArray(value))return value.map(address).filter
 function domain(v){v=(v||'').toLowerCase();return (v.match(/@([a-z0-9.-]+)/)?.[1]||v).replace(/\.$/,'')}
 function related(a,b){return !!(a&&b&&(a===b||a.endsWith('.'+b)||b.endsWith('.'+a)))}
 async function analyze(){
+ const run=++analysisSequence;results.hidden=true;report='';
  if(!input.value.trim()){status.textContent='Paste headers first.';status.dataset.error='true';return}
- const normalized=input.value.replace(/\r\n?/g,'\n'),lines=normalized.split('\n');let cut=lines.indexOf('');if(cut<0)cut=lines.length;
- let mail;try{mail=await PostalMime.parse(lines.slice(0,cut).join('\r\n')+'\r\n\r\n')}catch{results.hidden=true;status.textContent='Could not parse those headers.';status.dataset.error='true';return}
+ const normalized=input.value.replace(/\r\n?/g,'\n'),lines=normalized.split('\n');let cut=lines.findIndex(line=>!line.trim());if(cut<0)cut=lines.length;
+ let mail;try{mail=await PostalMime.parse(lines.slice(0,cut).join('\r\n')+'\r\n\r\n')}catch{if(run!==analysisSequence)return;results.hidden=true;status.textContent='Could not parse those headers.';status.dataset.error='true';return}
+ if(run!==analysisSequence)return;
  const h=mail.headers||[];if(!h.length){results.hidden=true;status.textContent='No recognizable headers found.';status.dataset.error='true';return}
  Object.values(areas).forEach(e=>e.replaceChildren());delete status.dataset.error;results.hidden=false;
  const auth=parseAuth(h,'authentication-results'),history=parseAuth(h,'arc-authentication-results'),signatures=all(h,'dkim-signature').map(dkim),received=all(h,'received').map(hop).reverse();
@@ -166,7 +168,7 @@ async function analyze(){
 }
 $('#ha-form').addEventListener('submit',e=>{e.preventDefault();void analyze()});
 $('#ha-sample').addEventListener('click',()=>{input.value=SAMPLE;void analyze()});
-$('#ha-clear').addEventListener('click',()=>{input.value='';results.hidden=true;report='';status.textContent='Cleared.';input.focus()});
+$('#ha-clear').addEventListener('click',()=>{analysisSequence++;input.value='';results.hidden=true;report='';delete status.dataset.error;status.textContent='Cleared.';input.focus()});
 $('#ha-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(report);status.textContent='Report copied.'}catch{status.textContent='Clipboard unavailable.'}});
-$('#ha-print').addEventListener('click',()=>window.print());
+$('#ha-print').addEventListener('click',()=>{const details=[...results.querySelectorAll('details')],previous=details.map(d=>d.open);details.forEach(d=>d.open=true);const restore=()=>details.forEach((d,i)=>d.open=previous[i]);window.addEventListener('afterprint',restore,{once:true});window.print();});
 </script>
