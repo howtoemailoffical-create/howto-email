@@ -2,4 +2,76 @@
 import Base from './Base.astro';
 const { title, description, section, tags=[] } = Astro.props;
 ---
-<Base title={title + ' | howto.email'} description={description}><div class="wrap article-shell"><aside class="article-meta"><a class="back-link" href={'/'+section.toLowerCase()+'/'}>← {section}</a><p class="kicker">TOPICS</p><div class="tag-list">{tags.map((tag:string)=><span class="eyebrow">{tag}</span>)}</div></aside><article class="article"><header><p class="kicker">{section.toUpperCase()}</p><h1>{title}</h1><p class="lead">{description}</p></header><div class="article-body"><slot /></div></article></div></Base>
+<Base title={title + ' | howto.email'} description={description}>
+  <div id="article-progress" class="article-progress" role="progressbar" aria-label="Article reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="article-progress-fill"></span></div>
+  <div class="wrap article-shell">
+    <aside class="article-meta">
+      <a class="back-link" href={'/'+section.toLowerCase()+'/'}>← {section}</a>
+      <p class="kicker">TOPICS</p>
+      <div class="tag-list">{tags.map((tag:string)=><span class="eyebrow">{tag}</span>)}</div>
+      <nav class="article-contents" aria-label="On this page" id="article-contents" hidden>
+        <details open><summary>On this page</summary><ol id="article-contents-list"></ol></details>
+      </nav>
+    </aside>
+    <article class="article" id="reading-article">
+      <header>
+        <p class="kicker">{section.toUpperCase()}</p>
+        <h1>{title}</h1>
+        <p class="lead">{description}</p>
+        <div class="article-controls"><button type="button" id="article-print">Print / Save PDF</button></div>
+      </header>
+      <div class="article-body" id="article-body"><slot /></div>
+    </article>
+  </div>
+</Base>
+<style is:global>
+.article-progress{position:fixed;top:0;left:0;right:0;height:4px;z-index:999;pointer-events:none;background:transparent}
+.article-progress span{display:block;width:0;height:100%;background:#60a5fa;transition:width .12s linear}
+.article-controls{margin:1rem 0}.article-controls button{border:1px solid #52627a;border-radius:8px;background:transparent;color:inherit;padding:.65rem .95rem;cursor:pointer;min-height:44px}
+.article-contents{margin-top:1.5rem;min-width:0}.article-contents details{border:1px solid var(--border,#37485f);border-radius:8px;padding:.6rem}.article-contents summary{font-weight:700}.article-contents ol{margin:.6rem 0 0;padding-left:1.4rem;max-height:45vh;overflow-y:auto}.article-contents li{margin:.45rem 0;line-height:1.45;overflow-wrap:anywhere}.article-contents a{font-size:.88rem}.article-contents .article-toc-sub{margin-left:.8rem;list-style:circle}
+@media(max-width:820px){.article-contents ol{max-height:280px}}
+@media print{
+  #article-progress,.article-controls,.article-meta,.site-header,.site-footer,.skip{display:none!important}
+  .article-shell{display:block!important;width:100%!important;max-width:none!important;padding:0!important;margin:0!important}
+  .article{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+  .article-body{max-width:none!important}
+  body{background:#fff!important;color:#111!important;font-size:11pt!important}
+  .article :is(h1,h2,h3){color:#111!important;break-after:avoid}
+  .article a{color:#111!important;text-decoration:underline!important}
+  .article pre{white-space:pre-wrap!important;overflow-wrap:anywhere!important}
+  .article :is(table,figure,pre,blockquote){break-inside:avoid-page}
+  @page{margin:16mm}
+}
+</style>
+<script>
+const body=document.querySelector('#article-body');
+const contents=document.querySelector('#article-contents');
+const list=document.querySelector('#article-contents-list');
+const headings=[...body.querySelectorAll('h2,h3')];
+const used=new Set([...document.querySelectorAll('[id]')].map(x=>x.id));
+for(const heading of headings){
+  if(!heading.id){
+    const base=(heading.textContent||'section').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-')||'section';
+    let id=base,n=2;while(used.has(id))id=base+'-'+n++;heading.id=id;used.add(id);
+  }
+  const li=document.createElement('li');if(heading.tagName==='H3')li.className='article-toc-sub';
+  const link=document.createElement('a');link.href='#'+encodeURIComponent(heading.id);link.textContent=heading.textContent||'Section';li.append(link);list.append(li);
+}
+if(headings.length>=2)contents.hidden=false;
+document.querySelector('#article-print')?.addEventListener('click',()=>window.print());
+const progress=document.querySelector('#article-progress');
+const fill=document.querySelector('#article-progress-fill');
+const article=document.querySelector('#reading-article');
+let scheduled=false;
+function updateProgress(){
+  scheduled=false;
+  const start=article.getBoundingClientRect().top+window.scrollY;
+  const end=start+article.offsetHeight-window.innerHeight;
+  const percent=end<=start?(window.scrollY>=start?100:0):Math.max(0,Math.min(100,Math.round((window.scrollY-start)/(end-start)*100)));
+  fill.style.width=percent+'%';progress.setAttribute('aria-valuenow',String(percent));
+}
+function scheduleProgress(){if(!scheduled){scheduled=true;requestAnimationFrame(updateProgress)}}
+window.addEventListener('scroll',scheduleProgress,{passive:true});
+window.addEventListener('resize',scheduleProgress,{passive:true});
+updateProgress();
+</script>
