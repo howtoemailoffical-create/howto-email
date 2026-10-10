@@ -29,7 +29,7 @@ import Base from '../../layouts/Base.astro';
   <section class="ha-section" aria-labelledby="ha-route-heading">
    <h2 id="ha-route-heading">Delivery timeline</h2>
    <p class="ha-muted">Received lines appear oldest first below. Hop timing is derived from server-supplied timestamps; clocks may differ and untrusted Received fields can be forged.</p>
-   <div id="ha-hops" class="ha-hops"></div>
+   <div class="ha-actions ha-view-tabs" role="tablist" aria-label="Delivery views"><button type="button" id="ha-timeline-tab" role="tab" aria-selected="true" aria-controls="ha-timeline-panel">Timeline</button><button type="button" id="ha-flow-tab" role="tab" aria-selected="false" aria-controls="ha-flow-panel">Message Flow</button></div><div id="ha-timeline-panel" role="tabpanel" aria-labelledby="ha-timeline-tab"><div id="ha-hops" class="ha-hops"></div></div><div id="ha-flow-panel" role="tabpanel" aria-labelledby="ha-flow-tab" hidden><p class="ha-muted">Diagram is based only on Received headers. Earlier hops may be missing or forged. PNG export is planned.</p><div id="ha-flow" class="ha-flow"></div></div>
   </section>
   <section class="ha-section" aria-labelledby="ha-meta-heading">
    <h2 id="ha-meta-heading">Message details</h2>
@@ -84,6 +84,14 @@ import Base from '../../layouts/Base.astro';
 .header-tool .ha-signatures{margin-top:1rem;overflow-wrap:anywhere}
 .header-tool .ha-signatures h3{font-size:1rem;margin:.6rem 0}
 .header-tool .ha-hops{display:grid;gap:.8rem}
+.header-tool .ha-view-tabs{margin-bottom:1rem}
+.header-tool .ha-view-tabs [aria-selected="true"]{background:#2867b5;border-color:#2867b5;color:#fff}
+.header-tool .ha-flow{display:flex;align-items:stretch;gap:.5rem;overflow-x:auto;padding:.5rem 0 1rem}
+.header-tool .ha-flow-node{flex:1 0 170px;max-width:260px;border:1px solid var(--border,#37485f);border-radius:9px;padding:.85rem;overflow-wrap:anywhere}
+.header-tool .ha-flow-node strong,.header-tool .ha-flow-node small{display:block}
+.header-tool .ha-flow-node small{color:var(--muted,#aab9cb);margin:.35rem 0}
+.header-tool .ha-flow-arrow{align-self:center;font-size:1.4rem}
+@media(max-width:600px){.header-tool .ha-flow{flex-direction:column;overflow-x:visible}.header-tool .ha-flow-node{flex:auto;max-width:none}.header-tool .ha-flow-arrow{transform:rotate(90deg)}}
 .header-tool .ha-hop{border-left:3px solid #5a8bbd}
 .header-tool .ha-hop[data-warning]{border-left-color:#e6a052}
 .header-tool .ha-hop h3{margin:0 0 .7rem;font-size:.95rem}
@@ -108,7 +116,7 @@ import Base from '../../layouts/Base.astro';
 import PostalMime from 'postal-mime';
 const $=s=>document.querySelector(s);
 const input=$('#ha-input'),status=$('#ha-status'),results=$('#ha-results');
-const ids=['verdict','metrics','observations','auth','alignment','arc','signatures','hops','identity','fields'];
+const ids=['flow','verdict','metrics','observations','auth','alignment','arc','signatures','hops','identity','fields'];
 const areas=Object.fromEntries(ids.map(k=>[k,$('#ha-'+k)]));
 let report='',analysisSequence=0;
 const SAMPLE=['Received: from relay.example.net (relay.example.net [192.0.2.20])',' by inbox.example.org with ESMTPS; Wed, 07 Oct 2026 15:03:10 +0000','Received: from sender.example.com (sender.example.com [192.0.2.10])',' by relay.example.net with ESMTPS; Wed, 07 Oct 2026 15:03:04 +0000','Authentication-Results: inbox.example.org; spf=pass smtp.mailfrom=example.com;',' dkim=pass header.d=example.com; dmarc=pass header.from=example.com','DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=mail; bh=EXAMPLE; b=EXAMPLE','From: Example Sender <sender@example.com>','To: Example Recipient <recipient@example.org>','Subject: Synthetic example','Date: Wed, 07 Oct 2026 15:02:55 +0000','Message-ID: <demo@example.com>'].join('\r\n');
@@ -154,7 +162,7 @@ async function analyze(){
  if(signatures.length){el(areas.signatures,'h3','DKIM signatures ('+signatures.length+')');const dl=el(areas.signatures,'dl','','ha-pairs');signatures.forEach((s,i)=>field(dl,'Signature '+(i+1),'d='+(s.d||'?')+' · s='+(s.s||'?')+' · a='+(s.a||'?')));el(areas.signatures,'p','Presence of a signature is not evidence that it passed verification.','ha-muted')}
  let slow=0,skew=0;
  received.forEach((v,i)=>{const c=el(areas.hops,'article','','ha-hop');el(c,'h3','Hop '+(i+1)+(i===0?' · Earliest recorded':''));const route=el(c,'div','','ha-route'),left=el(route,'div','','ha-node');el(left,'small','FROM');el(left,'div',v.from);el(route,'span','→');const right=el(route,'div','','ha-node');el(right,'small','BY');el(right,'div',v.by);const meta=el(c,'div','','ha-tags');if(v.protocol)el(meta,'span',v.protocol.toUpperCase());el(meta,'span',v.ms===null?v.stamp||'Unknown time':new Date(v.ms).toISOString());const prev=received[i-1];if(prev&&prev.ms!==null&&v.ms!==null){const delay=(v.ms-prev.ms)/1000;if(delay<0){skew++;c.dataset.warning='true';el(meta,'span','Clock mismatch')}else{el(meta,'span','+'+duration(delay));if(delay>300){slow++;c.dataset.warning='true'}}}const d=el(c,'details');el(d,'summary','View original Received field');el(d,'pre',v.raw)});
- if(!received.length)el(areas.hops,'p','No Received headers found.');
+ if(!received.length){el(areas.hops,'p','No Received headers found.');el(areas.flow,'p','No Received headers available to map.')}else{received.forEach((v,i)=>{if(i)el(areas.flow,'span','→','ha-flow-arrow');const n=el(areas.flow,'article','','ha-flow-node');el(n,'strong','Hop '+(i+1));el(n,'small','From: '+v.from);el(n,'div','To: '+v.by);el(n,'small',v.ms===null?(v.stamp||'Time unknown'):new Date(v.ms).toISOString());if(v.protocol)el(n,'small','Protocol: '+v.protocol);const d=el(n,'details');el(d,'summary','Evidence');el(d,'pre',v.raw)})}
  if(fail.length)note('Authentication errors: '+fail.map(x=>x.method.toUpperCase()).join(', ')+'. DMARC can fail while SPF/DKIM pass if sender domains do not align.',true);
  if(missing.length)note('Not reported: '+missing.map(x=>x.method.toUpperCase()).join(', ')+'. Missing results do not establish failure.',true);
  if(slow)note(slow+' hop interval(s) exceeded five minutes. Consult server logs to determine whether queueing or filtering occurred.',true);
@@ -167,6 +175,9 @@ async function analyze(){
  report=['Email header report','From: '+(address(mail.from)||'unknown'),'Subject: '+(mail.subject||'unknown'),'Hops: '+received.length,'Transit: '+(elapsed===null?'unknown':elapsed<0?'clock mismatch':duration(elapsed)),...core.map(x=>x.method.toUpperCase()+': '+(x.entries.map(e=>e.result).join(', ')||'not reported')),'ARC instances: '+arcInstances.size,'DKIM signatures: '+signatures.map(s=>'d='+(s.d||'?')+' s='+(s.s||'?')).join(', '),...Array.from(areas.observations.children).map(x=>x.textContent),'Results are unverified header claims.'].join('\n');
  status.textContent='Parsed '+h.length+' header fields locally. Nothing was uploaded.';
 }
+function setView(flow){$('#ha-flow-tab').setAttribute('aria-selected',String(flow));$('#ha-timeline-tab').setAttribute('aria-selected',String(!flow));$('#ha-flow-panel').hidden=!flow;$('#ha-timeline-panel').hidden=flow}
+$('#ha-flow-tab').addEventListener('click',()=>setView(true));
+$('#ha-timeline-tab').addEventListener('click',()=>setView(false));
 $('#ha-form').addEventListener('submit',e=>{e.preventDefault();void analyze()});
 $('#ha-sample').addEventListener('click',()=>{input.value=SAMPLE;void analyze()});
 $('#ha-clear').addEventListener('click',()=>{analysisSequence++;input.value='';results.hidden=true;report='';delete status.dataset.error;status.textContent='Cleared.';input.focus()});
