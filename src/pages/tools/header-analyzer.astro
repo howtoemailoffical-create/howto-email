@@ -17,7 +17,7 @@ import Base from '../../layouts/Base.astro';
   <div class="ha-toolbar"><div><p class="kicker">LOCAL ANALYSIS</p><h2>Message results</h2></div><div class="ha-actions"><button id="ha-copy" type="button">Copy report</button><button id="ha-print" type="button">Print / Save PDF</button></div></div>
   <section class="ha-section" aria-labelledby="ha-summary-heading">
    <h2 id="ha-summary-heading">Summary</h2>
-   <div id="ha-verdict" class="ha-verdict"></div><div id="ha-metrics" class="ha-metrics"></div><div id="ha-observations" class="ha-observations"></div>
+   <div id="ha-verdict" class="ha-verdict"></div><div id="ha-metrics" class="ha-metrics"></div><div id="ha-observations" class="ha-observations"></div><div id="ha-diagnostics"></div>
   </section>
   <section class="ha-section" aria-labelledby="ha-auth-heading">
    <h2 id="ha-auth-heading">Authentication</h2><p class="ha-muted">SPF, DKIM and DMARC below are results <em>reported by a mail server in these headers</em>. This analyzer does not independently verify them.</p>
@@ -68,6 +68,7 @@ import Base from '../../layouts/Base.astro';
 .header-tool .ha-metric span{display:block;color:var(--muted,#abb9c9);font-size:.79rem}
 .header-tool .ha-metric strong{display:block;font-size:1.2rem;line-height:1.45;overflow-wrap:anywhere}
 .header-tool .ha-observations{display:grid;gap:.55rem}
+.header-tool .diagnostic-findings{margin:1rem 0}.header-tool .diagnostic-findings h3{font-size:1.05rem}.header-tool .diagnostic-finding{border:1px solid var(--border,#37485f);border-left:3px solid #7b93ae;border-radius:8px;padding:.8rem 1rem;margin:.6rem 0;overflow-wrap:anywhere}.header-tool .diagnostic-finding[data-level="warning"],.header-tool .diagnostic-finding[data-level="error"]{border-left-color:#d79b55}.header-tool .diagnostic-finding[data-level="pass"]{border-left-color:#48b98a}.header-tool .diagnostic-finding-head{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}.header-tool .diagnostic-finding-head h4{margin:0;font-size:1rem}.header-tool .diagnostic-finding-level{font-size:.8rem;font-weight:700}.header-tool .diagnostic-finding p{margin:.55rem 0;line-height:1.55}.header-tool .diagnostic-finding a{display:inline-block;margin:.3rem 0}.header-tool .diagnostic-finding details{margin-top:.5rem}
 .header-tool .ha-observation{padding:.8rem 1rem;border:1px solid #35465c;border-radius:7px;line-height:1.55;overflow-wrap:anywhere}
 .header-tool .ha-observation[data-warning]{border-left:3px solid #d79b55}
 .header-tool .ha-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin:1rem 0}
@@ -122,6 +123,7 @@ import Base from '../../layouts/Base.astro';
 </style>
 <script>
 import PostalMime from 'postal-mime';
+import {finding,renderFindings} from '../../lib/diagnostic-findings.js';
 const $=s=>document.querySelector(s);
 const input=$('#ha-input'),status=$('#ha-status'),results=$('#ha-results');
 const ids=['flow','verdict','metrics','observations','auth','alignment','arc','signatures','hops','identity','fields'];
@@ -178,6 +180,14 @@ async function analyze(){
  if(elevatedCount)note(elevatedCount+' elevated interval(s) were at least '+duration(thresholds.elevated)+' but no more than '+duration(thresholds.long)+'. These are configurable heuristics, not evidence of a fault.',true);
  if(skew)note(skew+' hop interval(s) have negative timing. Clock skew or untrusted fields could explain this.',true);
  if(!received.length)note('No delivery trace can be constructed.',true);
+ const diagnostics=[];
+ for(const x of fail)diagnostics.push(finding({id:'auth-'+x.method,title:x.method.toUpperCase()+' reported an authentication issue',level:'warning',summary:'A header reports failure or error. This is not independent verification.',evidence:x.entries.map(e=>e.server+'; '+e.evidence).join('\\n'),action:'Confirm the result at your trusted receiving server and investigate sender configuration.',href:'/learn/email-authentication/'}));
+ if(slow)diagnostics.push(finding({id:'long-delay',title:slow+' long delivery interval(s)',level:'warning',summary:'One or more reported intervals exceeded '+duration(thresholds.long)+'.',action:'Review the affected hops, mail queues, and message-tracking logs.',href:'/do/read-headers/'}));
+ if(elevatedCount)diagnostics.push(finding({id:'elevated-delay',title:elevatedCount+' elevated delivery interval(s)',level:'advisory',summary:'Intervals exceeded the configured elevated threshold. These are heuristics, not a measured universal average.',action:'Compare with normal traffic for your environment.',href:'/do/read-headers/'}));
+ if(skew)diagnostics.push(finding({id:'clock-skew',title:'Inconsistent hop timestamps',level:'advisory',summary:skew+' interval(s) have negative elapsed time.',action:'Verify server clocks and whether the Received chain is trustworthy.',href:'/do/read-headers/'}));
+ if(!received.length)diagnostics.push(finding({id:'no-trace',title:'No delivery path available',level:'info',summary:'The pasted headers contain no Received fields.',action:'Obtain the complete original headers.',href:'/do/read-headers/'}));
+ if(!diagnostics.length)diagnostics.push(finding({id:'no-flags',title:'No flagged delivery or authentication issues',level:'pass',summary:'No issues were detected by these limited header-based checks. This does not establish message safety.'}));
+ renderFindings($('#ha-diagnostics'),diagnostics);
  if(!fail.length&&!missing.length&&!slow&&!elevatedCount&&!skew)note('No obvious issues were found among the reported headers and timings.');
  note('Authentication-Results and Received headers can be forged. This tool cannot independently establish authenticity.');
  [['From',address(mail.from)||one(h,'from')],['To',address(mail.to)||one(h,'to')],['Reply-To',address(mail.replyTo)||one(h,'reply-to')],['Return-Path',one(h,'return-path')],['Subject',mail.subject||one(h,'subject')],['Date',one(h,'date')],['Message-ID',mail.messageId||one(h,'message-id')]].forEach(([k,v])=>field(areas.identity,k,v));
