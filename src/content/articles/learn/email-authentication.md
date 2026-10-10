@@ -1,39 +1,74 @@
 ---
-title: Email authentication
-description: How SPF, DKIM and DMARC work together without pretending they solve the same problem.
+title: Email authentication explained
+description: Understand how SPF, DKIM and DMARC work together, why alignment matters, and how to troubleshoot authentication failures.
 section: Learn
 tags: [SPF, DKIM, DMARC, Security]
 ---
 
-SPF, DKIM and DMARC get grouped together so often that it is easy to treat them like three versions of the same control. They are not.
+Email authentication helps receiving systems evaluate whether a message is associated with the domains it claims to use. The three core mechanisms answer different questions:
 
-**SPF** checks whether a connecting source is authorized for an SMTP domain. **DKIM** verifies a cryptographic signature associated with a signing domain. **DMARC** asks whether a passing SPF or DKIM identity aligns with the domain people actually see in the From header.
+- **SPF** evaluates whether the connecting mail server is authorized to send for the SMTP envelope domain (or HELO identity in certain cases).
+- **DKIM** checks a cryptographic signature attached to the message and identifies the signing domain.
+- **DMARC** evaluates whether SPF or DKIM passes **and** aligns with the domain in the visible `From:` header. It also provides policy and reporting mechanisms.
 
-## One message, several identities
+A message can pass SPF and still fail DMARC. A message can also pass DMARC with DKIM alone, even when SPF fails.
 
-Imagine a service sends:
+## Follow the identities through a message
+
+Consider this simplified example:
 
 ```text
 From: Billing <billing@example.com>
-Return-Path: bounce@mailer.vendor.example
-DKIM-Signature: ... d=example.com; s=mail1; ...
+Return-Path: <bounce@mailer.vendor.example>
+DKIM-Signature: v=1; d=example.com; s=mail1; ...
+Authentication-Results: mx.receiver.example;
+  spf=pass smtp.mailfrom=mailer.vendor.example;
+  dkim=pass header.d=example.com;
+  dmarc=pass header.from=example.com
 ```
 
-SPF might pass for `mailer.vendor.example` but not align with `example.com`. DKIM can still give DMARC a passing path if the `example.com` signature validates.
+The SPF result applies to `mailer.vendor.example`, which does not align with the visible `example.com` From domain. However, the passing DKIM signature uses `example.com`, so DKIM provides an aligned authentication path for DMARC.
 
-That is why checking only for `spf=pass` is not enough when you are troubleshooting DMARC.
+These `Authentication-Results` values are **claims inserted by a receiving system**. Do not assume a pasted header proves the checks occurred: untrusted headers can be forged. When investigating, identify the authentication results added by infrastructure you trust.
 
-## Where forwarding gets messy
+## What alignment means
 
-A forwarder becomes the new SMTP source, which commonly breaks SPF for the original envelope domain. DKIM can survive forwarding as long as the signed content is not changed. ARC and SRS can help intermediaries with different pieces of the forwarding problem.
+DMARC checks the organizational relationship between the visible From domain and the authenticated SPF or DKIM domain.
 
-## Authentication is identity, not intent
+- **Relaxed alignment:** Subdomains of the same organizational domain can align, subject to DMARC's domain rules.
+- **Strict alignment:** The authenticated domain must match the From domain exactly.
+- **DMARC pass:** At least one supported authentication mechanism passes and aligns. Both do not have to pass.
 
-An attacker using a compromised legitimate mailbox may send messages that authenticate perfectly. Treat authentication as an important identity signal, not proof that a message is trustworthy.
+A simple string comparison is not sufficient to implement the full organizational-domain rules, particularly with public suffixes.
 
-## Reference material
+## Why forwarding and mailing lists cause trouble
 
+When a message is forwarded, the forwarder may become the connecting SMTP host. SPF for the original sender can therefore fail. DKIM may survive if the signed headers and body are not modified, but mailing-list footers or subject rewriting can break signatures.
+
+**SRS** helps forwarders rewrite the envelope sender for SPF handling; it does not automatically make the original visible From domain align. **ARC** preserves authentication assessments across intermediaries, but receivers decide how much to trust an ARC chain. Neither is a universal DMARC bypass.
+
+## Troubleshooting checklist
+
+1. Obtain the full headers from the receiving mailbox, not just a screenshot of the visible sender.
+2. Identify the receiver's trusted `Authentication-Results` entry.
+3. Record `smtp.mailfrom`, `header.d`, and `header.from`.
+4. Check which mechanism passed and whether that identity aligns with the visible From domain.
+5. Inspect the sending service's SPF authorization and DKIM signing configuration.
+6. If forwarding or a gateway is involved, compare the message before and after that hop.
+7. After making DNS or configuration changes, send a new test message and inspect its results.
+
+Use the [Email Header Analyzer](/tools/header-analyzer) to organize reported results and delivery hops, or the [Domain Analyzer](/tools/domain-analyzer) to inspect published DNS records. Neither tool alone proves that a message is legitimate.
+
+## Authentication is not a safety verdict
+
+A compromised legitimate mailbox can send phishing messages that pass SPF, DKIM and DMARC. Authentication is a useful domain-identity signal, not proof of sender intent or message safety.
+
+## Further reading
+
+- [SPF reference](/reference/spf)
+- [DKIM reference](/reference/dkim)
+- [DMARC reference](/reference/dmarc)
+- [Analyze an email header](/do/read-headers)
 - [RFC 7208 — SPF](https://www.rfc-editor.org/rfc/rfc7208)
 - [RFC 6376 — DKIM](https://www.rfc-editor.org/rfc/rfc6376)
-- [RFC 7489 — DMARC](https://www.rfc-editor.org/rfc/rfc7489)
-- [Microsoft — How email authentication works in Microsoft 365](https://learn.microsoft.com/en-us/defender-office-365/email-authentication-about)
+- [DMARC standards status](/reference/dmarc-current-standard)
