@@ -28,6 +28,8 @@ import Base from '../../layouts/Base.astro';
   </section>
   <section class="ha-section" aria-labelledby="ha-route-heading">
    <h2 id="ha-route-heading">Delivery timeline</h2>
+   <div class="ha-delay-settings"><label for="ha-delay-warning">Elevated delay threshold (seconds) <input id="ha-delay-warning" type="number" min="1" max="86400" step="1" value="60"></label><label for="ha-delay-long">Long delay threshold (seconds) <input id="ha-delay-long" type="number" min="2" max="86400" step="1" value="300"></label><button id="ha-delay-apply" type="button">Apply thresholds</button></div>
+   <p class="ha-muted">Starting heuristics, not a measured global email average: under 60 seconds normal, 60–300 seconds elevated, over 300 seconds long. Adjust for your infrastructure. These intervals compare adjacent Received timestamps, not guaranteed per-server processing times.</p>
    <p class="ha-muted">Received lines appear oldest first below. Hop timing is derived from server-supplied timestamps; clocks may differ and untrusted Received fields can be forged.</p>
    <div class="ha-actions ha-view-tabs" role="tablist" aria-label="Delivery views"><button type="button" id="ha-timeline-tab" role="tab" aria-selected="true" aria-controls="ha-timeline-panel">Timeline</button><button type="button" id="ha-flow-tab" role="tab" aria-selected="false" aria-controls="ha-flow-panel">Message Flow</button></div><div id="ha-timeline-panel" role="tabpanel" aria-labelledby="ha-timeline-tab"><div id="ha-hops" class="ha-hops"></div></div><div id="ha-flow-panel" role="tabpanel" aria-labelledby="ha-flow-tab" hidden><p class="ha-muted">Diagram is based only on Received headers. Earlier hops may be missing or forged. PNG export is planned.</p><div id="ha-flow" class="ha-flow"></div></div>
   </section>
@@ -84,6 +86,12 @@ import Base from '../../layouts/Base.astro';
 .header-tool .ha-signatures{margin-top:1rem;overflow-wrap:anywhere}
 .header-tool .ha-signatures h3{font-size:1rem;margin:.6rem 0}
 .header-tool .ha-hops{display:grid;gap:.8rem}
+.header-tool .ha-delay-settings{display:flex;flex-wrap:wrap;gap:.75rem;align-items:end;margin:.7rem 0}
+.header-tool .ha-delay-settings label{font-size:.86rem;flex:1 1 180px;margin:0}
+.header-tool .ha-delay-settings input{display:block;width:100%;padding:.5rem;border-radius:6px;border:1px solid #52627a;background:#111b2a;color:inherit;margin-top:.3rem}
+.header-tool .ha-delay-long{border-left:4px solid #d79b55!important}
+.header-tool .ha-delay-elevated{border-left:4px solid #c7ae63!important}
+.header-tool .ha-delay-status{font-weight:700}
 .header-tool .ha-view-tabs{margin-bottom:1rem}
 .header-tool .ha-view-tabs [aria-selected="true"]{background:#2867b5;border-color:#2867b5;color:#fff}
 .header-tool .ha-flow{display:flex;align-items:stretch;gap:.5rem;overflow-x:auto;padding:.5rem 0 1rem}
@@ -118,7 +126,7 @@ const $=s=>document.querySelector(s);
 const input=$('#ha-input'),status=$('#ha-status'),results=$('#ha-results');
 const ids=['flow','verdict','metrics','observations','auth','alignment','arc','signatures','hops','identity','fields'];
 const areas=Object.fromEntries(ids.map(k=>[k,$('#ha-'+k)]));
-let report='',analysisSequence=0;
+let report='',analysisSequence=0;const delaySettings=()=>{const elevated=Number($('#ha-delay-warning').value),long=Number($('#ha-delay-long').value);return Number.isInteger(elevated)&&Number.isInteger(long)&&elevated>=1&&long>elevated&&long<=86400?{elevated,long}:null};
 const SAMPLE=['Received: from relay.example.net (relay.example.net [192.0.2.20])',' by inbox.example.org with ESMTPS; Wed, 07 Oct 2026 15:03:10 +0000','Received: from sender.example.com (sender.example.com [192.0.2.10])',' by relay.example.net with ESMTPS; Wed, 07 Oct 2026 15:03:04 +0000','Authentication-Results: inbox.example.org; spf=pass smtp.mailfrom=example.com;',' dkim=pass header.d=example.com; dmarc=pass header.from=example.com','DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=mail; bh=EXAMPLE; b=EXAMPLE','From: Example Sender <sender@example.com>','To: Example Recipient <recipient@example.org>','Subject: Synthetic example','Date: Wed, 07 Oct 2026 15:02:55 +0000','Message-ID: <demo@example.com>'].join('\r\n');
 function el(parent,tag,text='',klass=''){const e=document.createElement(tag);e.textContent=String(text);if(klass)e.className=klass;parent.append(e);return e}
 function field(dl,label,value){el(dl,'dt',label);el(dl,'dd',value||'Not present')}
@@ -136,6 +144,7 @@ function address(value){if(Array.isArray(value))return value.map(address).filter
 function domain(v){v=(v||'').toLowerCase();return (v.match(/@([a-z0-9.-]+)/)?.[1]||v).replace(/\.$/,'')}
 function related(a,b){return !!(a&&b&&(a===b||a.endsWith('.'+b)||b.endsWith('.'+a)))}
 async function analyze(){
+ const thresholds=delaySettings();if(!thresholds){status.textContent='Delay thresholds must be whole seconds, with long greater than elevated (maximum 86400).';status.dataset.error='true';return}
  const run=++analysisSequence;results.hidden=true;report='';
  if(!input.value.trim()){status.textContent='Paste headers first.';status.dataset.error='true';return}
  const normalized=input.value.replace(/\r\n?/g,'\n'),lines=normalized.split('\n');let cut=lines.findIndex(line=>!line.trim());if(cut<0)cut=lines.length;
@@ -160,24 +169,26 @@ async function analyze(){
  [...new Set(history.map(x=>x.method))].forEach(x=>authCard(areas.arc,x+' (ARC history)',history.filter(e=>e.method===x)));
  if(arcInstances.size)el(areas.arc,'p',arcInstances.size+' distinct ARC instance number(s) reported. This does not cryptographically validate the chain or establish the number of forwarders.');
  if(signatures.length){el(areas.signatures,'h3','DKIM signatures ('+signatures.length+')');const dl=el(areas.signatures,'dl','','ha-pairs');signatures.forEach((s,i)=>field(dl,'Signature '+(i+1),'d='+(s.d||'?')+' · s='+(s.s||'?')+' · a='+(s.a||'?')));el(areas.signatures,'p','Presence of a signature is not evidence that it passed verification.','ha-muted')}
- let slow=0,skew=0;
- received.forEach((v,i)=>{const c=el(areas.hops,'article','','ha-hop');el(c,'h3','Hop '+(i+1)+(i===0?' · Earliest recorded':''));const route=el(c,'div','','ha-route'),left=el(route,'div','','ha-node');el(left,'small','FROM');el(left,'div',v.from);el(route,'span','→');const right=el(route,'div','','ha-node');el(right,'small','BY');el(right,'div',v.by);const meta=el(c,'div','','ha-tags');if(v.protocol)el(meta,'span',v.protocol.toUpperCase());el(meta,'span',v.ms===null?v.stamp||'Unknown time':new Date(v.ms).toISOString());const prev=received[i-1];if(prev&&prev.ms!==null&&v.ms!==null){const delay=(v.ms-prev.ms)/1000;if(delay<0){skew++;c.dataset.warning='true';el(meta,'span','Clock mismatch')}else{el(meta,'span','+'+duration(delay));if(delay>300){slow++;c.dataset.warning='true'}}}const d=el(c,'details');el(d,'summary','View original Received field');el(d,'pre',v.raw)});
- if(!received.length){el(areas.hops,'p','No Received headers found.');el(areas.flow,'p','No Received headers available to map.')}else{received.forEach((v,i)=>{if(i)el(areas.flow,'span','→','ha-flow-arrow');const n=el(areas.flow,'article','','ha-flow-node');el(n,'strong','Hop '+(i+1));el(n,'small','From: '+v.from);el(n,'div','To: '+v.by);el(n,'small',v.ms===null?(v.stamp||'Time unknown'):new Date(v.ms).toISOString());if(v.protocol)el(n,'small','Protocol: '+v.protocol);const d=el(n,'details');el(d,'summary','Evidence');el(d,'pre',v.raw)})}
+ let slow=0,elevatedCount=0,skew=0;
+ received.forEach((v,i)=>{const c=el(areas.hops,'article','','ha-hop');el(c,'h3','Hop '+(i+1)+(i===0?' · Earliest recorded':''));const route=el(c,'div','','ha-route'),left=el(route,'div','','ha-node');el(left,'small','FROM');el(left,'div',v.from);el(route,'span','→');const right=el(route,'div','','ha-node');el(right,'small','BY');el(right,'div',v.by);const meta=el(c,'div','','ha-tags');if(v.protocol)el(meta,'span',v.protocol.toUpperCase());el(meta,'span',v.ms===null?v.stamp||'Unknown time':new Date(v.ms).toISOString());const prev=received[i-1];if(prev&&prev.ms!==null&&v.ms!==null){const delay=(v.ms-prev.ms)/1000;if(delay<0){skew++;c.dataset.warning='true';el(meta,'span','Clock mismatch')}else{el(meta,'span','+'+duration(delay));if(delay>thresholds.long){slow++;c.dataset.warning='true';c.classList.add('ha-delay-long');el(meta,'span','Long delay','ha-delay-status')}else if(delay>=thresholds.elevated){elevatedCount++;c.classList.add('ha-delay-elevated');el(meta,'span','Elevated delay','ha-delay-status')}}}const d=el(c,'details');el(d,'summary','View original Received field');el(d,'pre',v.raw)});
+ if(!received.length){el(areas.hops,'p','No Received headers found.');el(areas.flow,'p','No Received headers available to map.')}else{received.forEach((v,i)=>{if(i)el(areas.flow,'span','→','ha-flow-arrow');const n=el(areas.flow,'article','','ha-flow-node');const prev=received[i-1];if(prev?.ms!==null&&prev?.ms!==undefined&&v.ms!==null){const seconds=(v.ms-prev.ms)/1000;if(seconds<0)el(n,'small','Clock mismatch');else if(seconds>thresholds.long){n.classList.add('ha-delay-long');el(n,'small','Long delay: '+duration(seconds))}else if(seconds>=thresholds.elevated){n.classList.add('ha-delay-elevated');el(n,'small','Elevated delay: '+duration(seconds))}else el(n,'small','Interval: '+duration(seconds))}el(n,'strong','Hop '+(i+1));el(n,'small','From: '+v.from);el(n,'div','To: '+v.by);el(n,'small',v.ms===null?(v.stamp||'Time unknown'):new Date(v.ms).toISOString());if(v.protocol)el(n,'small','Protocol: '+v.protocol);const d=el(n,'details');el(d,'summary','Evidence');el(d,'pre',v.raw)})}
  if(fail.length)note('Authentication errors: '+fail.map(x=>x.method.toUpperCase()).join(', ')+'. DMARC can fail while SPF/DKIM pass if sender domains do not align.',true);
  if(missing.length)note('Not reported: '+missing.map(x=>x.method.toUpperCase()).join(', ')+'. Missing results do not establish failure.',true);
- if(slow)note(slow+' hop interval(s) exceeded five minutes. Consult server logs to determine whether queueing or filtering occurred.',true);
+ if(slow)note(slow+' long interval(s) exceeded '+duration(thresholds.long)+'. Check mail queues, filtering, deferrals and server logs; the headers alone cannot establish cause.',true);
+ if(elevatedCount)note(elevatedCount+' elevated interval(s) were at least '+duration(thresholds.elevated)+' but no more than '+duration(thresholds.long)+'. These are configurable heuristics, not evidence of a fault.',true);
  if(skew)note(skew+' hop interval(s) have negative timing. Clock skew or untrusted fields could explain this.',true);
  if(!received.length)note('No delivery trace can be constructed.',true);
- if(!fail.length&&!missing.length&&!slow&&!skew)note('No obvious issues were found among the reported headers and timings.');
+ if(!fail.length&&!missing.length&&!slow&&!elevatedCount&&!skew)note('No obvious issues were found among the reported headers and timings.');
  note('Authentication-Results and Received headers can be forged. This tool cannot independently establish authenticity.');
  [['From',address(mail.from)||one(h,'from')],['To',address(mail.to)||one(h,'to')],['Reply-To',address(mail.replyTo)||one(h,'reply-to')],['Return-Path',one(h,'return-path')],['Subject',mail.subject||one(h,'subject')],['Date',one(h,'date')],['Message-ID',mail.messageId||one(h,'message-id')]].forEach(([k,v])=>field(areas.identity,k,v));
  h.forEach(x=>{const row=el(areas.fields,'div','','ha-field');el(row,'strong',x.originalKey||x.key);const d=el(row,'details');el(d,'summary',x.value.length>160?x.value.slice(0,160)+'…':x.value);el(d,'pre',x.value)});
- report=['Email header report','From: '+(address(mail.from)||'unknown'),'Subject: '+(mail.subject||'unknown'),'Hops: '+received.length,'Transit: '+(elapsed===null?'unknown':elapsed<0?'clock mismatch':duration(elapsed)),...core.map(x=>x.method.toUpperCase()+': '+(x.entries.map(e=>e.result).join(', ')||'not reported')),'ARC instances: '+arcInstances.size,'DKIM signatures: '+signatures.map(s=>'d='+(s.d||'?')+' s='+(s.s||'?')).join(', '),...Array.from(areas.observations.children).map(x=>x.textContent),'Results are unverified header claims.'].join('\n');
+ report=['Email header report','From: '+(address(mail.from)||'unknown'),'Subject: '+(mail.subject||'unknown'),'Hops: '+received.length,'Transit: '+(elapsed===null?'unknown':elapsed<0?'clock mismatch':duration(elapsed)),...core.map(x=>x.method.toUpperCase()+': '+(x.entries.map(e=>e.result).join(', ')||'not reported')),'ARC instances: '+arcInstances.size,'DKIM signatures: '+signatures.map(s=>'d='+(s.d||'?')+' s='+(s.s||'?')).join(', '),...Array.from(areas.observations.children).map(x=>x.textContent),'Delay thresholds: elevated '+thresholds.elevated+'s, long '+thresholds.long+'s. Elevated intervals: '+elevatedCount+'. Long intervals: '+slow+'.','Results are unverified header claims.'].join('\n');
  status.textContent='Parsed '+h.length+' header fields locally. Nothing was uploaded.';
 }
 function setView(flow){$('#ha-flow-tab').setAttribute('aria-selected',String(flow));$('#ha-timeline-tab').setAttribute('aria-selected',String(!flow));$('#ha-flow-panel').hidden=!flow;$('#ha-timeline-panel').hidden=flow}
 $('#ha-flow-tab').addEventListener('click',()=>setView(true));
 $('#ha-timeline-tab').addEventListener('click',()=>setView(false));
+$('#ha-delay-apply').addEventListener('click',()=>{if(input.value.trim())void analyze()});
 $('#ha-form').addEventListener('submit',e=>{e.preventDefault();void analyze()});
 $('#ha-sample').addEventListener('click',()=>{input.value=SAMPLE;void analyze()});
 $('#ha-clear').addEventListener('click',()=>{analysisSequence++;input.value='';results.hidden=true;report='';delete status.dataset.error;status.textContent='Cleared.';input.focus()});
