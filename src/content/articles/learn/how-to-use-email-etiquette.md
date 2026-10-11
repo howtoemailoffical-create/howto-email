@@ -1,5 +1,5 @@
 ---
-title: How to Use Email: A Beginner's Guide to Email Etiquette
+title: "How to Use Email: A Beginner's Guide to Email Etiquette"
 description: A simple guide for students and first-time email users covering addresses, messages, respectful communication, privacy, safety, and everyday email habits.
 section: Learn
 tags: [Email Basics, Beginners, Etiquette, Safety]
