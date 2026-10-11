@@ -75,7 +75,7 @@ import Base from '../../layouts/Base.astro';
 .header-tool .ha-verdict p{margin:.3rem 0 0}
 .header-tool .ha-verdict[data-state="attention"]{border-left-color:#e08780}
 .header-tool .ha-verdict[data-state="pass"]{border-left-color:#48b98a}
-.header-tool .ha-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin:1rem 0}
+.header-tool .ha-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin:1rem 0}
 .header-tool .ha-metric,.header-tool .ha-card,.header-tool .ha-hop{border:1px solid var(--border,#37485f);border-radius:9px;padding:1rem;min-width:0;overflow:hidden}
 .header-tool .ha-metric span{display:block;color:var(--muted,#abb9c9);font-size:.79rem}
 .header-tool .ha-metric strong{display:block;font-size:1.2rem;line-height:1.45;overflow-wrap:anywhere}
@@ -165,7 +165,6 @@ function one(h,key){return all(h,key)[0]||''}
 function parseAuth(h,key){return all(h,key).flatMap(raw=>{const parts=raw.split(';'),server=parts.shift()?.trim()||'Unknown';return parts.map(p=>{const m=p.trim().match(/^([a-z][a-z0-9_-]*)\s*=\s*([a-z0-9_-]+)/i);return m?{method:m[1].toLowerCase(),result:m[2].toLowerCase(),evidence:p.trim(),server}:null}).filter(Boolean)})}
 function prop(text,key){return text.match(new RegExp('(?:^|[\\s;])'+key.replace('.','\\.')+'\\s*=\\s*([^\\s;]+)','i'))?.[1]||''}
 function dkim(raw){const tags={};raw.split(';').forEach(piece=>{const m=piece.trim().match(/^([a-z]+)\s*=\s*(.*)$/i);if(m)tags[m[1].toLowerCase()]=m[2].trim()});return tags}
-function hop(raw){const semicolon=raw.lastIndexOf(';'),stamp=semicolon<0?'':raw.slice(semicolon+1).trim(),ms=stamp?Date.parse(stamp):NaN;return{from:raw.match(/\bfrom\s+(.+?)(?=\s+by\s+|;|$)/i)?.[1]||'Unknown source',by:raw.match(/\bby\s+(.+?)(?=\s+(?:with|id|for|via)\s+|;|$)/i)?.[1]||'Unknown receiver',protocol:raw.match(/\bwith\s+([a-z0-9_-]+)/i)?.[1]||'',stamp,ms:Number.isFinite(ms)?ms:null,raw}}
 function duration(s){return s<1?Math.round(s*1000)+' ms':s<60?s.toFixed(1)+' sec':s<3600?(s/60).toFixed(1)+' min':(s/3600).toFixed(2)+' hr'}
 function metric(name,value){const c=el(areas.metrics,'div','','ha-metric');el(c,'span',name);el(c,'strong',value)}
 function note(value,warning=false){const n=el(areas.observations,'div',value,'ha-observation');if(warning)n.dataset.warning='true'}
