@@ -255,6 +255,17 @@ $('#ha-dns-verify').addEventListener('click',async()=>{
  }catch(error){if(run===analysisSequence)dnsStatus.textContent='DNS lookup unavailable. No conclusion can be drawn from this failure.'}
  finally{button.disabled=false}
 });
-$('#ha-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(report);status.textContent='Report copied.'}catch{status.textContent='Clipboard unavailable.'}});
+async function copyReportText(value){
+ if(navigator.clipboard?.writeText&&window.isSecureContext){try{await navigator.clipboard.writeText(value);return true}catch{}}
+ const field=document.createElement('textarea');field.value=value;field.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';field.setAttribute('readonly','');document.body.append(field);field.focus();field.select();let ok=false;
+ try{ok=document.execCommand('copy')}catch{}finally{field.remove()}
+ return ok;
+}
+$('#ha-copy').addEventListener('click',async()=>{
+ if(!report){status.textContent='Analyze headers before copying a report.';return}
+ const copied=await copyReportText(report);
+ if(!copied){status.textContent='Clipboard unavailable. Try printing the report instead.';return}
+ status.textContent='Report copied.';const button=$('#ha-copy');button.textContent='Copied';setTimeout(()=>{if(button.isConnected)button.textContent='Copy report'},1800);
+});
 $('#ha-print').addEventListener('click',()=>{const details=[...results.querySelectorAll('details')],previous=details.map(d=>d.open);details.forEach(d=>d.open=true);const restore=()=>details.forEach((d,i)=>d.open=previous[i]);window.addEventListener('afterprint',restore,{once:true});window.print();});
 </script>
