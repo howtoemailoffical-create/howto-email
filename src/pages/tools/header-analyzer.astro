@@ -15,6 +15,12 @@ import Base from '../../layouts/Base.astro';
  <p id="ha-status" role="status" aria-live="polite"></p>
  <div id="ha-results" hidden>
   <div class="ha-toolbar"><div><p class="kicker">LOCAL ANALYSIS</p><h2>Message results</h2></div><div class="ha-actions"><button id="ha-copy" type="button">Copy report</button><button id="ha-print" type="button">Print / Save PDF</button></div></div>
+  <section class="ha-section" aria-labelledby="ha-meta-heading">
+   <h2 id="ha-meta-heading">Message details</h2>
+   <dl id="ha-identity" class="ha-identity"></dl>
+   <details class="ha-expander"><summary>All parsed header fields</summary><div id="ha-fields" class="ha-fields"></div></details>
+  </section>
+
   <section class="ha-section" aria-labelledby="ha-summary-heading">
    <h2 id="ha-summary-heading">Summary</h2>
    <div id="ha-verdict" class="ha-verdict"></div><div id="ha-metrics" class="ha-metrics"></div><div id="ha-observations" class="ha-observations"></div><div id="ha-diagnostics"></div>
@@ -32,11 +38,6 @@ import Base from '../../layouts/Base.astro';
    <p class="ha-muted">Starting heuristics, not a measured global email average: under 60 seconds normal, 60–300 seconds elevated, over 300 seconds long. Adjust for your infrastructure. These intervals compare adjacent Received timestamps, not guaranteed per-server processing times.</p>
    <p class="ha-muted">Received lines appear oldest first below. Hop timing is derived from server-supplied timestamps; clocks may differ and untrusted Received fields can be forged.</p>
    <div class="ha-actions ha-view-tabs" role="tablist" aria-label="Delivery views"><button type="button" id="ha-timeline-tab" role="tab" aria-selected="true" aria-controls="ha-timeline-panel">Timeline</button><button type="button" id="ha-flow-tab" role="tab" aria-selected="false" aria-controls="ha-flow-panel">Message Flow</button></div><div id="ha-timeline-panel" role="tabpanel" aria-labelledby="ha-timeline-tab"><div id="ha-hops" class="ha-hops"></div></div><div id="ha-flow-panel" role="tabpanel" aria-labelledby="ha-flow-tab" hidden><p class="ha-muted">Diagram is based only on Received headers. Earlier hops may be missing or forged. PNG export is planned.</p><div id="ha-flow" class="ha-flow"></div></div>
-  </section>
-  <section class="ha-section" aria-labelledby="ha-meta-heading">
-   <h2 id="ha-meta-heading">Message details</h2>
-   <dl id="ha-identity" class="ha-identity"></dl>
-   <details class="ha-expander"><summary>All parsed header fields</summary><div id="ha-fields" class="ha-fields"></div></details>
   </section>
   <p class="ha-muted">This tool parses untrusted text. It does not perform DNS lookups, cryptographically validate DKIM/ARC, establish sender identity, or decide whether a message is safe.</p>
  </div>
