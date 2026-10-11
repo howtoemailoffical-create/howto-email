@@ -12,6 +12,8 @@ import Base from '../../layouts/Base.astro';
 <p class="hint">Public DNS only. No login, mail credentials, or private configuration required.</p>
 </form>
 <p id="status" role="status" aria-live="polite">Enter a domain to begin.</p>
+<div class="action-bar"><div><strong>Build your DNS configuration</strong><p class="hint">Choose controls below. Copy All produces the complete plain-text change record without displaying it on the page.</p></div><button id="copy-all" type="button">Copy All</button></div>
+<p id="check-summary" class="check-summary" role="status" aria-live="polite">Select a control to generate proposed changes.</p>
 <div class="builder-layout">
 <section class="main-pane" aria-label="Configuration">
 <div class="panel">
@@ -26,22 +28,21 @@ import Base from '../../layouts/Base.astro';
 <label class="advanced-field" for="spf-custom" hidden>Custom SPF record<input id="spf-custom" placeholder="v=spf1 include:... ~all"></label>
 <label class="advanced-field" for="mx-host" hidden>Verified inbound MX host<input id="mx-host" placeholder="mail.example.com"></label>
 <label class="advanced-field" for="logo" hidden>BIMI logo HTTPS URL<input id="logo" placeholder="https://example.com/logo.svg"></label>
+<label class="advanced-field" for="dmarc-sp" hidden>Subdomain policy<select id="dmarc-sp"><option value="">Inherit main policy</option><option value="none">none</option><option value="quarantine">quarantine</option><option value="reject">reject</option></select></label>
+<label class="advanced-field" for="align-dkim" hidden>DKIM alignment<select id="align-dkim"><option value="r">Relaxed</option><option value="s">Strict</option></select></label>
+<label class="advanced-field" for="align-spf" hidden>SPF alignment<select id="align-spf"><option value="r">Relaxed</option><option value="s">Strict</option></select></label>
+<label class="advanced-field" for="pct" hidden>DMARC policy percentage<input id="pct" type="number" min="0" max="100" value="100"></label>
 </div>
 <p class="hint">Using multiple senders? Choose Other / multiple senders and supply a complete SPF record in Advanced mode. The defaults are starting points, not a substitute for a sender inventory.</p>
 </div>
 <div id="modules" class="modules"></div>
 </section>
-<aside class="report-pane panel">
-<div class="heading-row"><h2>Change summary</h2><button id="copy-all" type="button">Copy All</button></div>
-<p class="hint">Plain text with the domain, local timestamp, existing record, proposed record and validation status. Optional controls left off are marked “not used.”</p>
-<p id="check-summary" role="status" aria-live="polite">Select a control to see its proposed changes.</p>
-<pre id="output" tabindex="0"></pre>
-</aside>
+<textarea id="output" aria-hidden="true" tabindex="-1" hidden></textarea>
 </div>
 </section>
 </Base>
 <style>
-.policy-builder{max-width:1200px}.panel,.module{border:1px solid var(--border,#384456);border-radius:12px;padding:1.15rem;min-width:0;margin-bottom:1rem}.policy-builder input:not([type=checkbox]),.policy-builder select,.policy-builder button{font:inherit;max-width:100%;border:1px solid #64748b;border-radius:7px;padding:.68rem;background:#121d2d;color:inherit}.policy-builder button{cursor:pointer}.policy-builder button:focus-visible,.policy-builder input:focus-visible,.policy-builder select:focus-visible{outline:3px solid #6ba8f4;outline-offset:2px}#scan,#copy-all{background:#245fa9;color:#fff;border-color:#4786d5}.scan-fields{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.7rem;margin-top:.5rem}.builder-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(270px,1fr);gap:1rem;align-items:start}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.fields label{display:grid;gap:.35rem;font-weight:600;min-width:0}.fields label[hidden]{display:none}.fields input,.fields select{width:100%;min-width:0}.hint{opacity:.8;font-size:.9rem;line-height:1.55}.heading-row,.module-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}.mode{display:flex;gap:.35rem}.mode .selected{outline:2px solid #7eb1ec}.modules{display:grid;gap:.7rem}.module h3{font-size:1.1rem;margin:0}.switch{display:flex;align-items:center;gap:.55rem;font-weight:600}.switch input{width:1.2rem;height:1.2rem}.module details{margin:.5rem 0}.module summary{cursor:pointer}.module pre,.report-pane pre{background:#08121f;border:1px solid #304055;border-radius:7px;padding:.8rem;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}.record-label{font-size:.84rem;font-weight:700;opacity:.8}.note{font-size:.87rem}.error{color:#ffa49e}.warning{color:#f3c57b}.report-pane{position:sticky;top:1rem}.report-pane pre{font-size:.82rem;max-height:65vh;overflow:auto}#status{min-height:1.6em}@media(max-width:900px){.builder-layout{grid-template-columns:minmax(0,1fr)}.report-pane{position:static}}@media(max-width:600px){.fields,.scan-fields{grid-template-columns:minmax(0,1fr)}.mode{width:100%}.mode button{flex:1}}
+.policy-builder{max-width:1050px;min-width:0;overflow-x:clip}.panel,.module{border:1px solid var(--border,#384456);border-radius:12px;padding:1.15rem;min-width:0;margin-bottom:1rem}.policy-builder input:not([type=checkbox]),.policy-builder select,.policy-builder button{font:inherit;max-width:100%;border:1px solid #64748b;border-radius:7px;padding:.68rem;background:#121d2d;color:inherit}.policy-builder button{cursor:pointer}.policy-builder button:focus-visible,.policy-builder input:focus-visible,.policy-builder select:focus-visible{outline:3px solid #6ba8f4;outline-offset:2px}#scan,#copy-all{background:#245fa9;color:#fff;border-color:#4786d5}.scan-fields{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.7rem;margin-top:.5rem}.builder-layout{display:block;min-width:0}.main-pane,.main-pane>.panel,.modules,.module{min-width:0;max-width:100%;overflow:hidden}.action-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1rem 1.2rem;background:#111e2d;border:1px solid #39475c;border-radius:12px;margin:1rem 0}.action-bar .hint{margin:.35rem 0 0}.check-summary{padding:.5rem 0 1rem;line-height:1.55}#output[hidden]{display:none!important}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.fields label{display:grid;gap:.35rem;font-weight:600;min-width:0}.fields label[hidden]{display:none}.fields input,.fields select{width:100%;min-width:0}.hint{opacity:.8;font-size:.9rem;line-height:1.55}.heading-row,.module-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}.mode{display:flex;gap:.35rem}.mode .selected{outline:2px solid #7eb1ec}.modules{display:grid;gap:.7rem}.module h3{font-size:1.1rem;margin:0}.switch{display:flex;align-items:center;gap:.55rem;font-weight:600}.switch input{width:1.2rem;height:1.2rem}.module details{margin:.5rem 0}.module summary{cursor:pointer}.policy-builder .module pre{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#08121f;border:1px solid #304055;border-radius:7px;padding:.8rem;font-size:.84rem;line-height:1.55}.record-label{font-size:.84rem;font-weight:700;opacity:.8}.note{font-size:.87rem}.error{color:#ffa49e}.warning{color:#f3c57b}#status{min-height:1.6em}@media(max-width:900px){.builder-layout{grid-template-columns:minmax(0,1fr)}.report-pane{position:static}}@media(max-width:600px){.fields,.scan-fields{grid-template-columns:minmax(0,1fr)}.mode{width:100%}.mode button{flex:1}}
 </style>
 <script>
 import {validateEmailDns,senderReadinessNote} from '../../lib/email-dns-validation.js';
@@ -86,7 +87,8 @@ function propose(n,d){
   return dkim.includes('.')&&!dkim.includes('=')?{host:host(n,d),type:'CNAME',value:dkim,notes:['Verify provider CNAME destination.']}:{host:host(n,d),type:'TXT',value:'v=DKIM1; k=rsa; p='+dkim,notes:['Confirm selector, algorithm and key with your sending provider.']};
  }
  if(n==='DMARC'){
-  const value='v=DMARC1; p='+$('policy').value+(rua?'; rua=mailto:'+rua:'');
+  const pct=Math.max(0,Math.min(100,Number($('pct').value)||0));const sub=$('dmarc-sp').value;
+  const value='v=DMARC1; p='+$('policy').value+(sub?'; sp='+sub:'')+'; adkim='+$('align-dkim').value+'; aspf='+$('align-spf').value+'; pct='+pct+(rua?'; rua=mailto:'+rua:'');
   return {host:host(n,d),type:'TXT',value,notes:[$('policy').value==='none'?'Monitoring policy. Not DMARC enforcement.':'Do not enforce until legitimate mail alignment has been verified.']};
  }
  if(n==='MTA-STS'){
@@ -118,7 +120,7 @@ function build(){
   lines.push('');
  }
  lines.push('SENDER REQUIREMENTS','Assessment: not fully verifiable from DNS alone',senderReadinessNote);
- $('output').textContent=lines.join('\n');
+ $('output').value=lines.join('\n');
  $('check-summary').textContent=pass+' draft(s) without warnings, '+warn+' need review, '+fail+' syntax concern(s). Google/Yahoo operational compliance unverified.';
  for(const n of names){
   const el=document.querySelector('[data-card="'+n+'"]'),p=valid(d)?propose(n,d):{incomplete:'Enter a valid domain.'},on=enabled(n);
@@ -156,12 +158,12 @@ $('scan-form').addEventListener('submit',async e=>{
  finally{$('scan').disabled=false;build()}
 });
 $('domain').addEventListener('input',()=>{snapshot={};discovery='not scanned';scannedAt='';build()});
-for(const id of ['provider','selector','dkim-value','rua','tls-email','policy','spf-custom','mx-host','logo'])$(id).addEventListener('input',build);
+for(const id of ['provider','selector','dkim-value','rua','tls-email','policy','spf-custom','mx-host','logo','dmarc-sp','align-dkim','align-spf','pct'])$(id).addEventListener('input',build);
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{mode=button.dataset.mode;document.querySelectorAll('[data-mode]').forEach(b=>{const active=b===button;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active))});document.querySelectorAll('.advanced-field').forEach(x=>x.hidden=mode!=='advanced');build()}));
 $('copy-all').addEventListener('click',async()=>{
- const value=$('output').textContent;
- try{await navigator.clipboard.writeText(value);$('status').textContent='Copied all plain-text change details.'}
- catch{const area=document.createElement('textarea');area.value=value;area.style.cssText='position:fixed;left:-9999px';document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();$('status').textContent=ok?'Copied all plain-text change details.':'Clipboard unavailable; select and copy the visible summary.'}
+ const value=$('output').value;
+ try{await navigator.clipboard.writeText(value);$('status').textContent='All change details copied to clipboard.';const b=$('copy-all');b.textContent='Copied';setTimeout(()=>b.textContent='Copy All',1800)}
+ catch{const area=document.createElement('textarea');area.value=value;area.style.cssText='position:fixed;left:-9999px';document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();$('status').textContent=ok?'Copied all plain-text change details.':'Clipboard unavailable in this browser.'}
 });
 makeCards();build();
 </script>
