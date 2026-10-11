@@ -50,7 +50,7 @@ import Base from '../../layouts/Base.astro';
    <p class="ha-muted">Received lines appear oldest first below. Hop timing is derived from server-supplied timestamps; clocks may differ and untrusted Received fields can be forged.</p>
    <div class="ha-actions ha-view-tabs" role="tablist" aria-label="Delivery views"><button type="button" id="ha-timeline-tab" role="tab" aria-selected="true" aria-controls="ha-timeline-panel">Timeline</button><button type="button" id="ha-flow-tab" role="tab" aria-selected="false" aria-controls="ha-flow-panel">Message Flow</button></div><div id="ha-timeline-panel" role="tabpanel" aria-labelledby="ha-timeline-tab"><div id="ha-hops" class="ha-hops"></div></div><div id="ha-flow-panel" role="tabpanel" aria-labelledby="ha-flow-tab" hidden><p class="ha-muted">Diagram is based only on Received headers. Earlier hops may be missing or forged. PNG export is planned.</p><div id="ha-flow" class="ha-flow"></div></div>
   </section>
-  <p class="ha-muted">This tool parses untrusted text. It does not perform DNS lookups, cryptographically validate DKIM/ARC, establish sender identity, or decide whether a message is safe.</p>
+  <p class="ha-muted">This tool parses untrusted text. DNS checks happen only when you explicitly select Verify DNS and are snapshots of public records, not historical authentication proof. DKIM/ARC signatures are not cryptographically verified, and results do not establish sender identity or message safety.</p>
  </div>
 </main>
 </Base>
