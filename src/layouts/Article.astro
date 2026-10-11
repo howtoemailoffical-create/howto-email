@@ -31,17 +31,35 @@ const { title, description, section, tags=[] } = Astro.props;
 .article-contents{margin-top:1.5rem;min-width:0}.article-contents details{border:1px solid var(--border,#37485f);border-radius:8px;padding:.6rem}.article-contents summary{font-weight:700}.article-contents ol{margin:.6rem 0 0;padding-left:1.4rem;max-height:45vh;overflow-y:auto}.article-contents li{margin:.45rem 0;line-height:1.45;overflow-wrap:anywhere}.article-contents a{font-size:.88rem}.article-contents .article-toc-sub{margin-left:.8rem;list-style:circle}
 @media(max-width:820px){.article-contents ol{max-height:280px}}
 @media print{
-  #article-progress,.article-controls,.article-meta,.site-header,.site-footer,.skip{display:none!important}
-  .article-shell{display:block!important;width:100%!important;max-width:none!important;padding:0!important;margin:0!important}
-  .article{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
-  .article-body{max-width:none!important}
-  body{background:#fff!important;color:#111!important;font-size:11pt!important}
-  .article :is(h1,h2,h3){color:#111!important;break-after:avoid}
-  .article a{color:#111!important;text-decoration:underline!important}
-  .article pre{white-space:pre-wrap!important;overflow-wrap:anywhere!important}
-  .article :is(table,figure,pre,blockquote){break-inside:avoid-page}
-  @page{margin:16mm}
+  @page{size:auto;margin:17mm 16mm}
+  html,body{background:#fff!important;color:#111!important;font:11pt/1.5 Georgia,"Times New Roman",serif!important}
+  body{margin:0!important;padding:0!important;overflow:visible!important}
+  #article-progress,.article-controls,.article-meta,.site-header,.site-footer,.skip,header.site-header,footer,.nav,.footer,.site-nav{display:none!important}
+  main,.wrap,.article-shell,.article,.article-body{display:block!important;position:static!important;float:none!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;box-shadow:none!important;border:0!important;background:transparent!important;color:#111!important}
+  .article header{margin:0 0 12pt!important;padding:0!important;border:0!important;background:transparent!important}
+  .article header .kicker{display:none!important}
+  .article h1{font:700 20pt/1.2 Georgia,"Times New Roman",serif!important;margin:0 0 8pt!important}
+  .article .lead{font:11pt/1.5 Georgia,"Times New Roman",serif!important;margin:0 0 12pt!important;color:#222!important}
+  .article-body :is(h2,h3,h4){font-family:Georgia,"Times New Roman",serif!important;font-weight:700!important;color:#111!important;margin:14pt 0 5pt!important;padding:0!important;border:0!important;break-after:avoid-page;page-break-after:avoid}
+  .article-body h2{font-size:15pt!important}.article-body h3{font-size:12.5pt!important}.article-body h4{font-size:11pt!important}
+  .article-body :is(p,li,dd,dt,blockquote){color:#111!important;font-size:11pt!important;line-height:1.5!important;orphans:3;widows:3}
+  .article-body p{margin:0 0 8pt!important}
+  .article-body :is(ul,ol){padding-left:20pt!important;margin:4pt 0 10pt!important}
+  .article-body li{margin:0 0 3pt!important;break-inside:avoid-page}
+  .article-body :is(h2,h3,h4)+:is(p,ul,ol){break-before:avoid-page;page-break-before:avoid}
+  .article-body a{color:#111!important;text-decoration:underline!important;overflow-wrap:anywhere}
+  .article-body :is(pre,code){color:#111!important;background:transparent!important;border:0!important;box-shadow:none!important}
+  .article-body pre{font:9pt/1.4 ui-monospace,SFMono-Regular,Consolas,monospace!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:break-word!important;padding:5pt 0!important;margin:8pt 0!important;max-width:100%!important;overflow:visible!important}
+  .article-body :is(img,svg){max-width:100%!important;height:auto!important;break-inside:avoid-page}
+  .article-body table{display:table!important;width:100%!important;max-width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:9pt!important;break-inside:auto!important}
+  .article-body :is(th,td){border:1px solid #777!important;background:transparent!important;color:#111!important;padding:4pt!important;vertical-align:top!important;overflow-wrap:anywhere!important;word-break:break-word!important}
+  .article-body tr{break-inside:avoid-page;page-break-inside:avoid}
+  .article-body thead{display:table-header-group}
+  .article-body tfoot{display:table-footer-group}
+  .article-body :is(figure,blockquote){margin:8pt 0!important;padding:0!important;border:0!important;break-inside:auto!important}
+  .article-body :is(.card,.callout,.notice,.note){background:transparent!important;color:#111!important;box-shadow:none!important;border:0!important;padding:0!important}
 }
+
 </style>
 <script>
 const body=document.querySelector('#article-body');
