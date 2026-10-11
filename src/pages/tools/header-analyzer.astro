@@ -32,6 +32,17 @@ import Base from '../../layouts/Base.astro';
    <details id="ha-arc-section" class="ha-expander" hidden><summary>ARC history and evidence</summary><div id="ha-arc" class="ha-cards"></div></details>
    <div id="ha-signatures" class="ha-signatures"></div>
   </section>
+  <section class="ha-section" aria-labelledby="ha-dns-heading">
+   <h2 id="ha-dns-heading">Optional live DNS verification</h2>
+   <p class="ha-muted">Header analysis remains local. Only if you click Verify DNS, the selected domain and up to two public IPv4 sender-hop addresses are sent to Google Public DNS. No raw headers or message contents are uploaded. Current DNS is not proof that this message authenticated correctly when it was sent.</p>
+   <div class="ha-dns-controls">
+    <label for="ha-dns-domain">Domain to check <input id="ha-dns-domain" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.com" aria-describedby="ha-dns-hint"></label>
+    <button type="button" id="ha-dns-verify">Verify DNS</button>
+   </div>
+   <p id="ha-dns-hint" class="ha-muted">Checks current SPF, DMARC, MX and PTR for up to two public IP addresses observed in Received headers. DKIM selectors require a known selector and are not automatically enumerated.</p>
+   <p id="ha-dns-status" role="status" aria-live="polite"></p>
+   <div id="ha-dns-results" class="ha-dns-results"></div>
+  </section>
   <section class="ha-section" aria-labelledby="ha-route-heading">
    <h2 id="ha-route-heading">Delivery timeline</h2>
    <div class="ha-delay-settings"><label for="ha-delay-warning">Elevated delay threshold (seconds) <input id="ha-delay-warning" type="number" min="1" max="86400" step="1" value="60"></label><label for="ha-delay-long">Long delay threshold (seconds) <input id="ha-delay-long" type="number" min="2" max="86400" step="1" value="300"></label><button id="ha-delay-apply" type="button">Apply thresholds</button></div>
@@ -88,6 +99,20 @@ import Base from '../../layouts/Base.astro';
 .header-tool .ha-signatures{margin-top:1rem;overflow-wrap:anywhere}
 .header-tool .ha-signatures h3{font-size:1rem;margin:.6rem 0}
 .header-tool .ha-hops{display:grid;gap:.8rem}
+.header-tool .ha-dns-controls{display:flex;align-items:end;flex-wrap:wrap;gap:.7rem;margin:1rem 0}
+.header-tool .ha-dns-controls label{flex:1 1 260px;margin:0}
+.header-tool .ha-dns-controls input{display:block;width:100%;margin-top:.3rem;padding:.65rem;border:1px solid #52627a;border-radius:7px;background:#111b2a;color:inherit;font:inherit}
+.header-tool .ha-dns-controls input:focus-visible{outline:2px solid #80baff;outline-offset:2px}
+.header-tool #ha-dns-verify{background:#2867b5;border-color:#2867b5;color:white}
+.header-tool #ha-dns-verify:disabled{opacity:.65;cursor:wait}
+.header-tool .ha-dns-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin:1rem 0}
+.header-tool .ha-dns-card{border:1px solid #38485c;border-radius:9px;padding:1rem;overflow-wrap:anywhere}
+.header-tool .ha-dns-card h3{margin:0 0 .3rem;font-size:1rem}
+.header-tool .ha-dns-card[data-state="unavailable"]{border-left:3px solid #d79b55}
+.header-tool .ha-dns-card[data-state="found"]{border-left:3px solid #48b98a}
+.header-tool .ha-dns-card pre{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:650px){.header-tool .ha-dns-results{grid-template-columns:1fr}}
+
 .header-tool .ha-delay-settings{display:flex;flex-wrap:wrap;gap:.75rem;align-items:end;margin:.7rem 0}
 .header-tool .ha-delay-settings label{font-size:.86rem;flex:1 1 180px;margin:0}
 .header-tool .ha-delay-settings input{display:block;width:100%;padding:.5rem;border-radius:6px;border:1px solid #52627a;background:#111b2a;color:inherit;margin-top:.3rem}
@@ -125,11 +150,13 @@ import Base from '../../layouts/Base.astro';
 <script>
 import PostalMime from 'postal-mime';
 import {finding,renderFindings} from '../../lib/diagnostic-findings.js';
+import {analyzeReceivedTrace} from '../../lib/header-trace.js';
+import {verifyHeaderDns,validDomain} from '../../lib/header-dns.js';
 const $=s=>document.querySelector(s);
 const input=$('#ha-input'),status=$('#ha-status'),results=$('#ha-results');
 const ids=['flow','verdict','metrics','observations','auth','alignment','arc','signatures','hops','identity','fields'];
 const areas=Object.fromEntries(ids.map(k=>[k,$('#ha-'+k)]));
-let report='',analysisSequence=0;const delaySettings=()=>{const elevated=Number($('#ha-delay-warning').value),long=Number($('#ha-delay-long').value);return Number.isInteger(elevated)&&Number.isInteger(long)&&elevated>=1&&long>elevated&&long<=86400?{elevated,long}:null};
+let report='',analysisSequence=0,dnsContext=null;const delaySettings=()=>{const elevated=Number($('#ha-delay-warning').value),long=Number($('#ha-delay-long').value);return Number.isInteger(elevated)&&Number.isInteger(long)&&elevated>=1&&long>elevated&&long<=86400?{elevated,long}:null};
 const SAMPLE=['Received: from relay.example.net (relay.example.net [192.0.2.20])',' by inbox.example.org with ESMTPS; Wed, 07 Oct 2026 15:03:10 +0000','Received: from sender.example.com (sender.example.com [192.0.2.10])',' by relay.example.net with ESMTPS; Wed, 07 Oct 2026 15:03:04 +0000','Authentication-Results: inbox.example.org; spf=pass smtp.mailfrom=example.com;',' dkim=pass header.d=example.com; dmarc=pass header.from=example.com','DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=mail; bh=EXAMPLE; b=EXAMPLE','From: Example Sender <sender@example.com>','To: Example Recipient <recipient@example.org>','Subject: Synthetic example','Date: Wed, 07 Oct 2026 15:02:55 +0000','Message-ID: <demo@example.com>'].join('\r\n');
 function el(parent,tag,text='',klass=''){const e=document.createElement(tag);e.textContent=String(text);if(klass)e.className=klass;parent.append(e);return e}
 function field(dl,label,value){el(dl,'dt',label);el(dl,'dd',value||'Not present')}
@@ -148,14 +175,15 @@ function domain(v){v=(v||'').toLowerCase();return (v.match(/@([a-z0-9.-]+)/)?.[1
 function related(a,b){return !!(a&&b&&(a===b||a.endsWith('.'+b)||b.endsWith('.'+a)))}
 async function analyze(){
  const thresholds=delaySettings();if(!thresholds){status.textContent='Delay thresholds must be whole seconds, with long greater than elevated (maximum 86400).';status.dataset.error='true';return}
- const run=++analysisSequence;results.hidden=true;report='';
+ const run=++analysisSequence;results.hidden=true;report='';dnsContext=null;$('#ha-dns-results').replaceChildren();$('#ha-dns-status').textContent='';
  if(!input.value.trim()){status.textContent='Paste headers first.';status.dataset.error='true';return}
  const normalized=input.value.replace(/\r\n?/g,'\n'),lines=normalized.split('\n');let cut=lines.findIndex(line=>!line.trim());if(cut<0)cut=lines.length;
  let mail;try{mail=await PostalMime.parse(lines.slice(0,cut).join('\r\n')+'\r\n\r\n')}catch{if(run!==analysisSequence)return;results.hidden=true;status.textContent='Could not parse those headers.';status.dataset.error='true';return}
  if(run!==analysisSequence)return;
  const h=mail.headers||[];if(!h.length){results.hidden=true;status.textContent='No recognizable headers found.';status.dataset.error='true';return}
  Object.values(areas).forEach(e=>e.replaceChildren());delete status.dataset.error;results.hidden=false;
- const auth=parseAuth(h,'authentication-results'),history=parseAuth(h,'arc-authentication-results'),signatures=all(h,'dkim-signature').map(dkim),received=all(h,'received').map(hop).reverse();
+ const trace=analyzeReceivedTrace(all(h,'received'),thresholds,h);
+ const auth=parseAuth(h,'authentication-results'),history=parseAuth(h,'arc-authentication-results'),signatures=all(h,'dkim-signature').map(dkim),received=trace.hops;
  const arcInstances=new Set([...all(h,'arc-seal'),...all(h,'arc-message-signature'),...all(h,'arc-authentication-results')].map(v=>v.match(/(?:^|;)\s*i\s*=\s*(\d+)/i)?.[1]).filter(Boolean));
  const dated=received.filter(v=>v.ms!==null),elapsed=dated.length>1?(dated[dated.length-1].ms-dated[0].ms)/1000:null;
  const core=['spf','dkim','dmarc'].map(method=>({method,entries:auth.filter(x=>x.method===method)})),fail=core.filter(x=>x.entries.some(e=>['fail','softfail','temperror','permerror','policy'].includes(e.result))),missing=core.filter(x=>!x.entries.length);
@@ -163,9 +191,12 @@ async function analyze(){
  areas.verdict.dataset.state=fail.length?'attention':allPass?'pass':'partial';
  el(areas.verdict,'strong',fail.length?'Review authentication failures':allPass?'All three methods report pass':'Incomplete or mixed authentication reporting');
  el(areas.verdict,'p',fail.length?'At least one method reports a failure or error. Check which trusted server added that claim.':allPass?'Reported SPF, DKIM and DMARC values are pass. These are not independent verification results.':'One or more methods did not report pass. Review the individual cards.');
- metric('Received hops',received.length);metric('Observed transit',elapsed===null?'Unknown':elapsed<0?'Clock mismatch':duration(elapsed));metric('SPF / DKIM / DMARC',core.map(x=>x.entries.map(e=>e.result).join(', ')||'—').join(' / '));metric('ARC instances',arcInstances.size);
+ metric('Received hops',received.length);metric('Observed transit',elapsed===null?'Unknown':elapsed<0?'Clock mismatch':duration(elapsed));metric('SPF / DKIM / DMARC',core.map(x=>x.entries.map(e=>e.result).join(', ')||'—').join(' / '));metric('ARC instances',arcInstances.size);metric('Repeated relay paths',trace.count.loopEdges);metric('Claimed SMTP deferrals',trace.queueEvidence.reduce((sum,e)=>sum+e.temporaryFailures.length,0));
  core.forEach(x=>authCard(areas.auth,x.method,x.entries));[...new Set(auth.map(e=>e.method).filter(x=>!['spf','dkim','dmarc'].includes(x)))].forEach(x=>authCard(areas.auth,x,auth.filter(e=>e.method===x)));
- const fromDomain=domain(mail.from?.address||''),spfDomains=auth.filter(e=>e.method==='spf'&&e.result==='pass').map(e=>domain(prop(e.evidence,'smtp.mailfrom'))).filter(Boolean),dkimDomains=auth.filter(e=>e.method==='dkim'&&e.result==='pass').map(e=>domain(prop(e.evidence,'header.d'))).filter(Boolean);
+ const fromDomain=domain(mail.from?.address||'');
+ dnsContext={domain:fromDomain,ips:received.map(x=>x.ip).filter(Boolean)};
+ $('#ha-dns-domain').value=fromDomain;
+ const spfDomains=auth.filter(e=>e.method==='spf'&&e.result==='pass').map(e=>domain(prop(e.evidence,'smtp.mailfrom'))).filter(Boolean),dkimDomains=auth.filter(e=>e.method==='dkim'&&e.result==='pass').map(e=>domain(prop(e.evidence,'header.d'))).filter(Boolean);
  el(areas.alignment,'strong','Sender identifier comparison');
  el(areas.alignment,'p',fromDomain&&(spfDomains.length||dkimDomains.length)?'From: '+fromDomain+'. Passing SPF MailFrom: '+(spfDomains.join(', ')||'not reported')+'. Passing DKIM domains: '+(dkimDomains.join(', ')||'not reported')+'. '+([...spfDomains,...dkimDomains].some(v=>related(v,fromDomain))?'Some domains appear related.':'No simple domain relationship found.')+' This is informational only, not a validated DMARC alignment verdict.':'Insufficient reported identifier information for a meaningful comparison.');
  $('#ha-arc-section').hidden=!arcInstances.size&&!history.length&&!auth.some(x=>x.method==='arc');
@@ -181,19 +212,18 @@ async function analyze(){
  if(elevatedCount)note(elevatedCount+' elevated interval(s) were at least '+duration(thresholds.elevated)+' but no more than '+duration(thresholds.long)+'. These are configurable heuristics, not evidence of a fault.',true);
  if(skew)note(skew+' hop interval(s) have negative timing. Clock skew or untrusted fields could explain this.',true);
  if(!received.length)note('No delivery trace can be constructed.',true);
+ if(trace.count.loopEdges)note(trace.count.loopEdges+' repeated directed relay handoff(s) suggest a possible routing loop. This requires confirmation with message-tracking logs.',true);
+ if(trace.queueEvidence.some(e=>e.temporaryFailures.length))note('Queue diagnostics contain reported SMTP temporary failures; these custom fields are unverified claims.',true);
  const diagnostics=[];
  for(const x of fail)diagnostics.push(finding({id:'auth-'+x.method,title:x.method.toUpperCase()+' reported an authentication issue',level:'warning',summary:'A header reports failure or error. This is not independent verification.',evidence:x.entries.map(e=>e.server+'; '+e.evidence).join('\\n'),action:'Confirm the result at your trusted receiving server and investigate sender configuration.',href:'/learn/email-authentication/'}));
- if(slow)diagnostics.push(finding({id:'long-delay',title:slow+' long delivery interval(s)',level:'warning',summary:'One or more reported intervals exceeded '+duration(thresholds.long)+'.',action:'Review the affected hops, mail queues, and message-tracking logs.',href:'/do/read-headers/'}));
- if(elevatedCount)diagnostics.push(finding({id:'elevated-delay',title:elevatedCount+' elevated delivery interval(s)',level:'advisory',summary:'Intervals exceeded the configured elevated threshold. These are heuristics, not a measured universal average.',action:'Compare with normal traffic for your environment.',href:'/do/read-headers/'}));
- if(skew)diagnostics.push(finding({id:'clock-skew',title:'Inconsistent hop timestamps',level:'advisory',summary:skew+' interval(s) have negative elapsed time.',action:'Verify server clocks and whether the Received chain is trustworthy.',href:'/do/read-headers/'}));
- if(!received.length)diagnostics.push(finding({id:'no-trace',title:'No delivery path available',level:'info',summary:'The pasted headers contain no Received fields.',action:'Obtain the complete original headers.',href:'/do/read-headers/'}));
+ for(const entry of trace.findings)diagnostics.push(finding({id:entry.id,title:entry.title,level:entry.level,summary:entry.summary+' Confidence: '+entry.confidence+'.',evidence:entry.evidence,action:entry.action,href:'/do/read-headers/'}));
  if(!diagnostics.length)diagnostics.push(finding({id:'no-flags',title:'No flagged delivery or authentication issues',level:'pass',summary:'No issues were detected by these limited header-based checks. This does not establish message safety.'}));
  renderFindings($('#ha-diagnostics'),diagnostics);
  if(!fail.length&&!missing.length&&!slow&&!elevatedCount&&!skew)note('No obvious issues were found among the reported headers and timings.');
  note('Authentication-Results and Received headers can be forged. This tool cannot independently establish authenticity.');
  [['From',address(mail.from)||one(h,'from')],['To',address(mail.to)||one(h,'to')],['Reply-To',address(mail.replyTo)||one(h,'reply-to')],['Return-Path',one(h,'return-path')],['Subject',mail.subject||one(h,'subject')],['Date',one(h,'date')],['Message-ID',mail.messageId||one(h,'message-id')]].forEach(([k,v])=>field(areas.identity,k,v));
  h.forEach(x=>{const row=el(areas.fields,'div','','ha-field');el(row,'strong',x.originalKey||x.key);const d=el(row,'details');el(d,'summary',x.value.length>160?x.value.slice(0,160)+'…':x.value);el(d,'pre',x.value)});
- report=['Email header report','From: '+(address(mail.from)||'unknown'),'Subject: '+(mail.subject||'unknown'),'Hops: '+received.length,'Transit: '+(elapsed===null?'unknown':elapsed<0?'clock mismatch':duration(elapsed)),...core.map(x=>x.method.toUpperCase()+': '+(x.entries.map(e=>e.result).join(', ')||'not reported')),'ARC instances: '+arcInstances.size,'DKIM signatures: '+signatures.map(s=>'d='+(s.d||'?')+' s='+(s.s||'?')).join(', '),...Array.from(areas.observations.children).map(x=>x.textContent),'Delay thresholds: elevated '+thresholds.elevated+'s, long '+thresholds.long+'s. Elevated intervals: '+elevatedCount+'. Long intervals: '+slow+'.','Results are unverified header claims.'].join('\n');
+ report=['Email header report','From: '+(address(mail.from)||'unknown'),'Subject: '+(mail.subject||'unknown'),'Hops: '+received.length,'Transit: '+(elapsed===null?'unknown':elapsed<0?'clock mismatch':duration(elapsed)),...core.map(x=>x.method.toUpperCase()+': '+(x.entries.map(e=>e.result).join(', ')||'not reported')),'ARC instances: '+arcInstances.size,'DKIM signatures: '+signatures.map(s=>'d='+(s.d||'?')+' s='+(s.s||'?')).join(', '),...Array.from(areas.observations.children).map(x=>x.textContent),'Delay thresholds: elevated '+thresholds.elevated+'s, long '+thresholds.long+'s. Elevated intervals: '+elevatedCount+'. Long intervals: '+slow+'.',...trace.findings.map(x=>'Finding: '+x.title+'\nConfidence: '+x.confidence+'\nEvidence:\n'+(x.evidence||'Not available')+'\nRecommended action: '+x.action),'Results are unverified header claims.'].join('\n');
  status.textContent='Parsed '+h.length+' header fields locally. Nothing was uploaded.';
 }
 function setView(flow){$('#ha-flow-tab').setAttribute('aria-selected',String(flow));$('#ha-timeline-tab').setAttribute('aria-selected',String(!flow));$('#ha-flow-panel').hidden=!flow;$('#ha-timeline-panel').hidden=flow}
@@ -202,7 +232,30 @@ $('#ha-timeline-tab').addEventListener('click',()=>setView(false));
 $('#ha-delay-apply').addEventListener('click',()=>{if(input.value.trim())void analyze()});
 $('#ha-form').addEventListener('submit',e=>{e.preventDefault();void analyze()});
 $('#ha-sample').addEventListener('click',()=>{input.value=SAMPLE;void analyze()});
-$('#ha-clear').addEventListener('click',()=>{analysisSequence++;input.value='';results.hidden=true;report='';delete status.dataset.error;status.textContent='Cleared.';input.focus()});
+$('#ha-clear').addEventListener('click',()=>{analysisSequence++;input.value='';results.hidden=true;report='';dnsContext=null;$('#ha-dns-results').replaceChildren();$('#ha-dns-status').textContent='';delete status.dataset.error;status.textContent='Cleared.';input.focus()});
+$('#ha-dns-verify').addEventListener('click',async()=>{
+ const selected=$('#ha-dns-domain').value.trim().toLowerCase().replace(/\.$/,'');
+ const dnsStatus=$('#ha-dns-status'),target=$('#ha-dns-results'),button=$('#ha-dns-verify');
+ if(!dnsContext){dnsStatus.textContent='Analyze headers first.';return}
+ if(!validDomain(selected)){dnsStatus.textContent='Enter a valid public domain.';return}
+ const run=analysisSequence;
+ button.disabled=true;target.replaceChildren();dnsStatus.textContent='Checking current public DNS via Google DNS…';
+ try{
+  const dns=await verifyHeaderDns({domain:selected,ips:dnsContext.ips});
+  if(run!==analysisSequence)return;
+  for(const item of dns.results){
+   const card=el(target,'article','','ha-dns-card');card.dataset.state=item.state;
+   el(card,'h3',item.label);el(card,'p',item.message);
+   el(card,'p','Queried: '+item.name+' ('+item.type+')','ha-muted');
+   if(item.records.length){const detail=el(card,'details');el(detail,'summary','View '+item.records.length+' record(s)');el(detail,'pre',item.records.join('\n'))}
+  }
+  el(target,'p',dns.warning,'ha-muted');
+  const unavailable=dns.results.filter(x=>x.state==='unavailable').length;
+  dnsStatus.textContent='DNS check finished at '+new Date(dns.checkedAt).toLocaleString()+'. '+unavailable+' check(s) unavailable.';
+  report+='\n\nOPTIONAL PUBLIC DNS SNAPSHOT\nDomain: '+dns.domain+'\nChecked: '+dns.checkedAt+'\n'+dns.results.map(x=>x.label+': '+x.state+'\n'+(x.records.join('\n')||x.message)).join('\n\n')+'\n'+dns.warning;
+ }catch(error){if(run===analysisSequence)dnsStatus.textContent='DNS lookup unavailable. No conclusion can be drawn from this failure.'}
+ finally{button.disabled=false}
+});
 $('#ha-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(report);status.textContent='Report copied.'}catch{status.textContent='Clipboard unavailable.'}});
 $('#ha-print').addEventListener('click',()=>{const details=[...results.querySelectorAll('details')],previous=details.map(d=>d.open);details.forEach(d=>d.open=true);const restore=()=>details.forEach((d,i)=>d.open=previous[i]);window.addEventListener('afterprint',restore,{once:true});window.print();});
 </script>
