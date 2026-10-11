@@ -1,0 +1,13 @@
+---
+import { getCollection, render } from 'astro:content';
+import Article from '../../layouts/Article.astro';
+
+// Explicit route ensures the beginner guide is published at its advertised URL.
+const articles = await getCollection('articles');
+const article = articles.find(item => item.id.replace(/\\/g, '/').replace(/\.(md|mdx)$/i, '') === 'learn/how-to-use-email-etiquette');
+if (!article) throw new Error('Missing beginner email etiquette article in content collection');
+const { Content } = await render(article);
+---
+<Article title={article.data.title} description={article.data.description} section={article.data.section} tags={article.data.tags}>
+  <Content />
+</Article>
