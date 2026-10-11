@@ -1,47 +1,167 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
-<Base title="Email DNS Policy Builder — howto.email" description="Build and review email authentication DNS changes.">
-<section class="wrap page">
-<p class="kicker">TOOLS</p><h1>Email DNS Policy Builder</h1>
-<p>Generate proposed DNS records and a plain-text change summary. Review with your mail provider before publishing.</p>
-<label for="domain">Domain or subdomain</label><input id="domain" placeholder="example.com" autocomplete="off">
-<button id="scan" type="button">Discover existing records</button><p id="status" role="status" aria-live="polite"></p>
-<label for="mode">Configuration mode</label><select id="mode"><option>Guided</option><option>Advanced</option></select>
-<label for="provider">Outbound email provider</label><select id="provider"><option value="">Select provider</option><option value="m365">Microsoft 365</option><option value="google">Google Workspace</option><option value="custom">Other / multiple senders</option></select>
-<label for="report">DMARC aggregate report email</label><input id="report" type="email" placeholder="dmarc@example.com">
-<label for="tlsreport">TLS report email</label><input id="tlsreport" type="email" placeholder="tls@example.com">
-<label for="selector">DKIM selector (provided by sender)</label><input id="selector" placeholder="selector1">
-<div id="modules"></div><button id="copy" type="button">Copy All</button><pre id="output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+<Base title="Email DNS Policy Builder | howto.email" description="Discover existing email DNS, generate proposed SPF, DKIM, DMARC, MTA-STS, TLS-RPT and BIMI records, and copy change details.">
+<section class="wrap page policy-builder">
+<p class="kicker">TOOLS / DNS POLICY BUILDER</p>
+<h1>Email DNS Policy Builder</h1>
+<p class="lead">Inspect your current email DNS records, choose the protections you need, and copy proposed changes for a ticket or change request. Nothing is changed in DNS automatically.</p>
+<form id="scan-form" class="panel">
+<label for="domain">Domain or subdomain</label>
+<div class="scan-fields"><input id="domain" name="domain" placeholder="example.com" autocomplete="off" spellcheck="false" required><button type="submit" id="scan">Discover records</button></div>
+<p class="hint">Public DNS only. No login, mail credentials, or private configuration required.</p>
+</form>
+<p id="status" role="status" aria-live="polite">Enter a domain to begin.</p>
+<div class="builder-layout">
+<section class="main-pane" aria-label="Configuration">
+<div class="panel">
+<div class="heading-row"><h2>Configuration</h2><div class="mode" role="group" aria-label="Builder mode"><button type="button" class="selected" data-mode="guided" aria-pressed="true">Guided</button><button type="button" data-mode="advanced" aria-pressed="false">Advanced</button></div></div>
+<div class="fields">
+<label for="provider">Sending provider<select id="provider"><option value="">Select a provider</option><option value="google">Google Workspace only</option><option value="m365">Microsoft 365 only</option><option value="custom">Other / multiple senders</option></select></label>
+<label for="selector">DKIM selector<input id="selector" placeholder="From your sender" spellcheck="false"></label>
+<label for="dkim-value">DKIM public key or CNAME target<input id="dkim-value" placeholder="From your provider" spellcheck="false"></label>
+<label for="rua">DMARC report email<input id="rua" type="email" placeholder="dmarc@example.com"></label>
+<label for="tls-email">TLS-RPT report email<input id="tls-email" type="email" placeholder="tls@example.com"></label>
+<label class="advanced-field" for="policy" hidden>DMARC policy<select id="policy"><option value="none">none — monitor</option><option value="quarantine">quarantine</option><option value="reject">reject</option></select></label>
+<label class="advanced-field" for="spf-custom" hidden>Custom SPF record<input id="spf-custom" placeholder="v=spf1 include:... ~all"></label>
+<label class="advanced-field" for="mx-host" hidden>Verified inbound MX host<input id="mx-host" placeholder="mail.example.com"></label>
+<label class="advanced-field" for="logo" hidden>BIMI logo HTTPS URL<input id="logo" placeholder="https://example.com/logo.svg"></label>
+</div>
+<p class="hint">Using multiple senders? Choose Other / multiple senders and supply a complete SPF record in Advanced mode. The defaults are starting points, not a substitute for a sender inventory.</p>
+</div>
+<div id="modules" class="modules"></div>
 </section>
-<script>
-const $=id=>document.getElementById(id);
-const defs=[
-['SPF','Authorizes sending hosts. Confirm every legitimate sender before changing it.'],
-['DKIM','Requires public key or CNAME targets supplied by your mail provider; cannot safely invent keys.'],
-['DMARC','Defines handling of messages that fail aligned SPF and DKIM authentication. Start with monitoring.'],
-['MTA-STS','Requires a DNS TXT record and an HTTPS policy file on mta-sts.<domain>.'],
-['TLS-RPT','Requests SMTP TLS failure reports at the configured mailbox.'],
-['BIMI','Optional brand logo mechanism requiring DMARC enforcement and appropriate SVG/certification.']
-];
-let existing={};let scanned=false;
-const validDomain=d=>/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(d);
-function current(k){const item=existing[k];return item?.records?.length?item.records.join(' | '):'not used'}
-function generate(k,d){const provider=$('provider').value,rua=$('report').value.trim(),tls=$('tlsreport').value.trim(),selector=$('selector').value.trim();
-switch(k){
-case 'SPF':return provider==='m365'?'v=spf1 include:spf.protection.outlook.com -all':provider==='google'?'v=spf1 include:_spf.google.com -all':'Provider-specific sending hosts required; do not publish yet';
-case 'DKIM':return selector?'Configure '+selector+'._domainkey.'+d+' with the TXT public key or CNAME target supplied by your sender.':'Provider selector and public key/CNAME target required';
-case 'DMARC':return '_dmarc.'+d+' TXT v=DMARC1; p=none'+(rua?'; rua=mailto:'+rua:'');
-case 'MTA-STS':return '_mta-sts.'+d+' TXT v=STSv1; id='+new Date().toISOString().slice(0,10).replace(/-/g,'')+'\nAlso host https://mta-sts.'+d+'/.well-known/mta-sts.txt with version: STSv1, mode: testing, mx: <verified MX hostname>, max_age: 86400';
-case 'TLS-RPT':return tls?'_smtp._tls.'+d+' TXT v=TLSRPTv1; rua=mailto:'+tls:'Reporting mailbox required';
-case 'BIMI':return 'default._bimi.'+d+' TXT v=BIMI1; l=https://<verified-logo-url> (requires enforced DMARC; do not publish placeholders)';
-}}
-function validate(k,v){if(/required|<|do not publish/i.test(v))return 'WARNING — incomplete configuration';if(k==='SPF'&&v.length>255)return 'WARNING — review TXT string splitting';if(k==='DMARC'&&!/p=(none|quarantine|reject)/.test(v))return 'FAIL — DMARC policy missing';return 'DRAFT — verify DNS, sender alignment and current Google/Yahoo requirements';}
-function render(){const d=$('domain').value.trim().toLowerCase();let lines=['HowTo.Email — Email DNS Policy Builder','Generated: '+new Date().toLocaleString(),'Domain: '+d,'Discovery: '+(scanned?'completed':'not performed'),''];for(const [k] of defs){if(!document.querySelector('[data-tech="'+k+'"]').checked)continue;const after=validDomain(d)?generate(k,d):'Valid domain required';lines.push('Technology: '+k,'Before: '+current(k),'After: '+after,'Status: '+validate(k,after),'');}lines.push('Important: DNS-only checks cannot prove Google/Yahoo sending compliance, DKIM signing, alignment, or deliverability. Test with real mail before enforcement.');$('output').textContent=lines.join('\n')}
-$('modules').innerHTML=defs.map(([k,desc])=>'<div style="margin:1rem 0;padding:1rem;border:1px solid #888;border-radius:.5rem"><label><input type="checkbox" data-tech="'+k+'"> '+k+'</label> <details><summary aria-label="Information about '+k+'">ⓘ Information</summary><p>'+desc+'</p></details></div>').join('');
-document.querySelectorAll('input,select').forEach(el=>el.addEventListener('change',render));$('domain').addEventListener('input',()=>{scanned=false;existing={};render()});
-$('scan').addEventListener('click',async()=>{const d=$('domain').value.trim().toLowerCase();if(!validDomain(d)){$('status').textContent='Enter a valid domain.';return}$('status').textContent='Looking up DNS…';try{const r=await fetch('/api/domain-check?domain='+encodeURIComponent(d));if(!r.ok)throw Error('Lookup unavailable');const j=await r.json();existing=j.results||{};scanned=true;$('status').textContent='DNS lookup completed. Review detected records.';}catch(e){$('status').textContent='DNS lookup unavailable. Generated records are proposals only.'}render()});
-$('copy').addEventListener('click',async()=>{render();try{await navigator.clipboard.writeText($('output').textContent);$('status').textContent='Copied plain-text configuration.'}catch(e){$('status').textContent='Copy blocked by browser; select the text below to copy.'}});
-render();
-</script>
+<aside class="report-pane panel">
+<div class="heading-row"><h2>Change summary</h2><button id="copy-all" type="button">Copy All</button></div>
+<p class="hint">Plain text with the domain, local timestamp, existing record, proposed record and validation status. Optional controls left off are marked “not used.”</p>
+<p id="check-summary" role="status" aria-live="polite">Select a control to see its proposed changes.</p>
+<pre id="output" tabindex="0"></pre>
+</aside>
+</div>
+</section>
 </Base>
+<style>
+.policy-builder{max-width:1200px}.panel,.module{border:1px solid var(--border,#384456);border-radius:12px;padding:1.15rem;min-width:0;margin-bottom:1rem}.policy-builder input:not([type=checkbox]),.policy-builder select,.policy-builder button{font:inherit;max-width:100%;border:1px solid #64748b;border-radius:7px;padding:.68rem;background:#121d2d;color:inherit}.policy-builder button{cursor:pointer}.policy-builder button:focus-visible,.policy-builder input:focus-visible,.policy-builder select:focus-visible{outline:3px solid #6ba8f4;outline-offset:2px}#scan,#copy-all{background:#245fa9;color:#fff;border-color:#4786d5}.scan-fields{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.7rem;margin-top:.5rem}.builder-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(270px,1fr);gap:1rem;align-items:start}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.fields label{display:grid;gap:.35rem;font-weight:600;min-width:0}.fields input,.fields select{width:100%;min-width:0}.hint{opacity:.8;font-size:.9rem;line-height:1.55}.heading-row,.module-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}.mode{display:flex;gap:.35rem}.mode .selected{outline:2px solid #7eb1ec}.modules{display:grid;gap:.7rem}.module h3{font-size:1.1rem;margin:0}.switch{display:flex;align-items:center;gap:.55rem;font-weight:600}.switch input{width:1.2rem;height:1.2rem}.module details{margin:.5rem 0}.module summary{cursor:pointer}.module pre,.report-pane pre{background:#08121f;border:1px solid #304055;border-radius:7px;padding:.8rem;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}.record-label{font-size:.84rem;font-weight:700;opacity:.8}.note{font-size:.87rem}.error{color:#ffa49e}.warning{color:#f3c57b}.report-pane{position:sticky;top:1rem}.report-pane pre{font-size:.82rem;max-height:65vh;overflow:auto}#status{min-height:1.6em}@media(max-width:900px){.builder-layout{grid-template-columns:minmax(0,1fr)}.report-pane{position:static}}@media(max-width:600px){.fields,.scan-fields{grid-template-columns:minmax(0,1fr)}.mode{width:100%}.mode button{flex:1}}
+</style>
+<script>
+import {validateEmailDns,senderReadinessNote} from '../../lib/email-dns-validation.js';
+const $=id=>document.getElementById(id);
+const names=['SPF','DKIM','DMARC','MTA-STS','TLS-RPT','BIMI'];
+const descriptions={
+'SPF':'Authorizes outgoing mail senders. Exactly one SPF TXT record is allowed at a hostname. DNS lookup limits and all sending sources must be checked.',
+'DKIM':'Adds cryptographic signatures to mail. Your provider must supply the selector and TXT key or CNAME target.',
+'DMARC':'Specifies policy for unauthenticated or unaligned mail. Begin with monitoring, then move to enforcement after verifying your senders.',
+'MTA-STS':'Instructs supporting senders to use authenticated TLS to deliver inbound mail. Requires a matching HTTPS policy and validated MX hosts.',
+'TLS-RPT':'Requests reports about failures to negotiate secure SMTP transport. It is optional.',
+'BIMI':'Optional logo display standard that typically requires enforced DMARC and, for some mailbox providers, mark verification.'
+};
+const keys={'SPF':'spf','DKIM':'dkim','DMARC':'dmarc','MTA-STS':'mta_sts','TLS-RPT':'tls_rpt','BIMI':'bimi'};
+let domain='',snapshot={},discovery='not scanned',scannedAt='',mode='guided';
+const valid=d=>/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(d);
+const txt=(x)=>typeof x==='string'?x:JSON.stringify(x);
+function extract(api){
+ const out={};
+ const sources=api.howto_records||{},results=api.results||{};
+ for(const n of names){
+  const key=keys[n],alt=key.replace('_','-');
+  let records=Array.isArray(sources[key])?sources[key].map(x=>txt(x.value)):[];
+  const recordResult=results[key]||results[alt]||{};
+  if(!records.length&&Array.isArray(recordResult.records))records=recordResult.records.map(txt);
+  out[n]=records;
+ }
+ out.SPF=out.SPF.filter(x=>/^v=spf1(?:\s|$)/i.test(x));
+ return out;
+}
+function before(n){if(discovery!=='complete')return 'not verified — DNS discovery unavailable';const rows=snapshot[n]||[];if(n==='DKIM'&&!rows.length)return 'not verified — DKIM selector needed';return rows.length?rows.join('\n'):'not used';}
+function host(n,d){return {'SPF':d,'DKIM':$('selector').value.trim()+'._domainkey.'+d,'DMARC':'_dmarc.'+d,'MTA-STS':'_mta-sts.'+d,'TLS-RPT':'_smtp._tls.'+d,'BIMI':'default._bimi.'+d}[n]}
+function propose(n,d){
+ const provider=$('provider').value,selector=$('selector').value.trim(),dkim=$('dkim-value').value.trim(),rua=$('rua').value.trim(),tls=$('tls-email').value.trim(),mx=$('mx-host').value.trim(),logo=$('logo').value.trim();
+ if(n==='SPF'){
+  const custom=$('spf-custom').value.trim(),value=custom||(provider==='m365'?'v=spf1 include:spf.protection.outlook.com ~all':provider==='google'?'v=spf1 include:_spf.google.com ~all':'');
+  return value?{host:d,type:'TXT',value,notes:['Verify all real senders and the SPF 10-lookup evaluation limit. Do not publish multiple SPF records.']}:{incomplete:'Select one provider or supply the complete SPF policy.'};
+ }
+ if(n==='DKIM'){
+  if(!selector||!dkim)return {incomplete:'Supply the provider-issued selector and public key or CNAME target.'};
+  if(!/^[a-z0-9_-]{1,63}$/i.test(selector))return {incomplete:'Invalid DKIM selector.'};
+  return dkim.includes('.')&&!dkim.includes('=')?{host:host(n,d),type:'CNAME',value:dkim,notes:['Verify provider CNAME destination.']}:{host:host(n,d),type:'TXT',value:'v=DKIM1; k=rsa; p='+dkim,notes:['Confirm selector, algorithm and key with your sending provider.']};
+ }
+ if(n==='DMARC'){
+  const value='v=DMARC1; p='+$('policy').value+(rua?'; rua=mailto:'+rua:'');
+  return {host:host(n,d),type:'TXT',value,notes:[$('policy').value==='none'?'Monitoring policy. Not DMARC enforcement.':'Do not enforce until legitimate mail alignment has been verified.']};
+ }
+ if(n==='MTA-STS'){
+  if(!mx)return {incomplete:'Verified inbound MX hostname required to generate the HTTPS policy.'};
+  return {host:host(n,d),type:'TXT',value:'v=STSv1; id='+new Date().toISOString().slice(0,10).replace(/-/g,''),extra:'HTTPS policy at https://mta-sts.'+d+'/.well-known/mta-sts.txt\nversion: STSv1\nmode: testing\nmx: '+mx+'\nmax_age: 86400',notes:['HTTPS certificate, matching MX records and policy hosting must be checked.']};
+ }
+ if(n==='TLS-RPT')return tls?{host:host(n,d),type:'TXT',value:'v=TLSRPTv1; rua=mailto:'+tls}:{incomplete:'Supply the TLS report mailbox.'};
+ if(n==='BIMI')return logo&&/^https:\/\//i.test(logo)?{host:host(n,d),type:'TXT',value:'v=BIMI1; l='+logo,notes:['DMARC enforcement and logo/certificate prerequisites are not verified.']}:{incomplete:'Provide a valid HTTPS BIMI logo URL; DMARC enforcement is also required.'};
+ return {incomplete:'Unsupported control'};
+}
+function enabled(n){return document.querySelector('[data-key="'+n+'"]').checked}
+function build(){
+ const d=$('domain').value.trim().toLowerCase();domain=d;const lines=['HOWTO.EMAIL — DNS POLICY BUILDER','Domain: '+(d||'(not entered)'),'Generated: '+new Date().toLocaleString(),'DNS discovery: '+discovery+(scannedAt?' ('+scannedAt+')':''),''];
+ let fail=0,warn=0,pass=0;
+ for(const n of names){
+  lines.push(n);
+  if(!enabled(n)){lines.push('Before: '+before(n),'After: not used','');continue;}
+  if(!valid(d)){lines.push('Before: not verified','After: invalid domain','Status: FAIL','');fail++;continue}
+  const p=propose(n,d);const prior=before(n);
+  if(p.incomplete){lines.push('Before: '+prior,'After: not generated — '+p.incomplete,'Status: NEEDS INPUT','');warn++;continue;}
+  const check=p.type==='TXT'?validateEmailDns(n,p.value):{status:'pass',issues:[]};
+  const issues=[...(check.issues||[]),...(p.notes||[])];
+  if(prior!=='not used'&&!prior.startsWith('not verified')&&prior.trim()!==p.value.trim())issues.push('Existing value differs; replace only after reviewing production dependencies.');
+  if(check.status!=='pass')fail++;else if(issues.length||discovery!=='complete')warn++;else pass++;
+  lines.push('Host: '+p.host,'Type: '+p.type,'Before: '+prior,'After: '+p.value);
+  if(p.extra)lines.push('Additional configuration:\n'+p.extra);
+  lines.push('Status: '+(check.status==='pass'?'REVIEW':'WARNING'));
+  for(const issue of issues)lines.push('Note: '+issue);
+  lines.push('');
+ }
+ lines.push('SENDER REQUIREMENTS','Assessment: not fully verifiable from DNS alone',senderReadinessNote);
+ $('output').textContent=lines.join('\n');
+ $('check-summary').textContent=pass+' draft(s) without warnings, '+warn+' need review, '+fail+' syntax concern(s). Google/Yahoo operational compliance unverified.';
+ for(const n of names){
+  const el=document.querySelector('[data-card="'+n+'"]'),p=valid(d)?propose(n,d):{incomplete:'Enter a valid domain.'},on=enabled(n);
+  el.querySelector('.before').textContent=before(n);
+  el.querySelector('.after').textContent=on?(p.incomplete?'Needs input: '+p.incomplete:('Host: '+p.host+'\nType: '+p.type+'\nValue: '+p.value+(p.extra?'\n'+p.extra:''))):'not used';
+  el.querySelector('.diagnostic').textContent=on?(p.incomplete?'Needs input':p.type==='TXT'?validateEmailDns(n,p.value).issues.join('; ')||'Draft — verify before publishing':'CNAME draft — verify with provider'):'Not enabled';
+ }
+}
+function makeCards(){
+ const wrap=$('modules');wrap.replaceChildren();
+ for(const n of names){
+  const a=document.createElement('article');a.className='module';a.dataset.card=n;
+  const header=document.createElement('div');header.className='module-top';
+  const heading=document.createElement('h3');heading.textContent=n;
+  const label=document.createElement('label');label.className='switch';
+  const toggle=document.createElement('input');toggle.type='checkbox';toggle.dataset.key=n;toggle.checked=false;
+  label.append(toggle,document.createTextNode(' Enable'));header.append(heading,label);
+  const details=document.createElement('details'),sum=document.createElement('summary');sum.textContent='ⓘ What does this do?';const para=document.createElement('p');para.textContent=descriptions[n];details.append(sum,para);
+  const diag=document.createElement('p');diag.className='note diagnostic';const beforelabel=document.createElement('p');beforelabel.className='record-label';beforelabel.textContent='Current record';const pre=document.createElement('pre');pre.className='before';const afterlabel=document.createElement('p');afterlabel.className='record-label';afterlabel.textContent='Proposed record';const post=document.createElement('pre');post.className='after';
+  a.append(header,details,diag,beforelabel,pre,afterlabel,post);toggle.addEventListener('change',build);wrap.append(a);
+ }
+}
+async function loadDNS(d){
+ const r=await fetch('/api/analyze?domain='+encodeURIComponent(d),{headers:{accept:'application/json'}});
+ if(!r.ok)throw Error('API status '+r.status);
+ const data=await r.json();
+ if(!data?.results&&!data?.howto_records)throw Error('Analyzer returned no records structure');
+ return extract(data);
+}
+$('scan-form').addEventListener('submit',async e=>{
+ e.preventDefault();const d=$('domain').value.trim().toLowerCase();if(!valid(d)){$('status').textContent='Enter a valid domain.';return}
+ $('scan').disabled=true;$('status').textContent='Looking up public DNS…';discovery='checking';build();
+ try{snapshot=await loadDNS(d);discovery='complete';scannedAt=new Date().toLocaleString();$('status').textContent='DNS discovery complete. Review changes before publication.';}
+ catch(e){snapshot={};discovery='unavailable';scannedAt='';$('status').textContent='DNS lookup unavailable. Existing records are unverified; do not publish replacements blindly.'}
+ finally{$('scan').disabled=false;build()}
+});
+$('domain').addEventListener('input',()=>{snapshot={};discovery='not scanned';scannedAt='';build()});
+for(const id of ['provider','selector','dkim-value','rua','tls-email','policy','spf-custom','mx-host','logo'])$(id).addEventListener('input',build);
+document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{mode=button.dataset.mode;document.querySelectorAll('[data-mode]').forEach(b=>{const active=b===button;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active))});document.querySelectorAll('.advanced-field').forEach(x=>x.hidden=mode!=='advanced');build()}));
+$('copy-all').addEventListener('click',async()=>{
+ const value=$('output').textContent;
+ try{await navigator.clipboard.writeText(value);$('status').textContent='Copied all plain-text change details.'}
+ catch{const area=document.createElement('textarea');area.value=value;area.style.cssText='position:fixed;left:-9999px';document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();$('status').textContent=ok?'Copied all plain-text change details.':'Clipboard unavailable; select and copy the visible summary.'}
+});
+makeCards();build();
+</script>
