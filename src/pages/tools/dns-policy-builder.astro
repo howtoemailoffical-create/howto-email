@@ -1,0 +1,47 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Email DNS Policy Builder — howto.email" description="Build and review email authentication DNS changes.">
+<section class="wrap page">
+<p class="kicker">TOOLS</p><h1>Email DNS Policy Builder</h1>
+<p>Generate proposed DNS records and a plain-text change summary. Review with your mail provider before publishing.</p>
+<label for="domain">Domain or subdomain</label><input id="domain" placeholder="example.com" autocomplete="off">
+<button id="scan" type="button">Discover existing records</button><p id="status" role="status" aria-live="polite"></p>
+<label for="mode">Configuration mode</label><select id="mode"><option>Guided</option><option>Advanced</option></select>
+<label for="provider">Outbound email provider</label><select id="provider"><option value="">Select provider</option><option value="m365">Microsoft 365</option><option value="google">Google Workspace</option><option value="custom">Other / multiple senders</option></select>
+<label for="report">DMARC aggregate report email</label><input id="report" type="email" placeholder="dmarc@example.com">
+<label for="tlsreport">TLS report email</label><input id="tlsreport" type="email" placeholder="tls@example.com">
+<label for="selector">DKIM selector (provided by sender)</label><input id="selector" placeholder="selector1">
+<div id="modules"></div><button id="copy" type="button">Copy All</button><pre id="output" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+</section>
+<script>
+const $=id=>document.getElementById(id);
+const defs=[
+['SPF','Authorizes sending hosts. Confirm every legitimate sender before changing it.'],
+['DKIM','Requires public key or CNAME targets supplied by your mail provider; cannot safely invent keys.'],
+['DMARC','Defines handling of messages that fail aligned SPF and DKIM authentication. Start with monitoring.'],
+['MTA-STS','Requires a DNS TXT record and an HTTPS policy file on mta-sts.<domain>.'],
+['TLS-RPT','Requests SMTP TLS failure reports at the configured mailbox.'],
+['BIMI','Optional brand logo mechanism requiring DMARC enforcement and appropriate SVG/certification.']
+];
+let existing={};let scanned=false;
+const validDomain=d=>/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(d);
+function current(k){const item=existing[k];return item?.records?.length?item.records.join(' | '):'not used'}
+function generate(k,d){const provider=$('provider').value,rua=$('report').value.trim(),tls=$('tlsreport').value.trim(),selector=$('selector').value.trim();
+switch(k){
+case 'SPF':return provider==='m365'?'v=spf1 include:spf.protection.outlook.com -all':provider==='google'?'v=spf1 include:_spf.google.com -all':'Provider-specific sending hosts required; do not publish yet';
+case 'DKIM':return selector?'Configure '+selector+'._domainkey.'+d+' with the TXT public key or CNAME target supplied by your sender.':'Provider selector and public key/CNAME target required';
+case 'DMARC':return '_dmarc.'+d+' TXT v=DMARC1; p=none'+(rua?'; rua=mailto:'+rua:'');
+case 'MTA-STS':return '_mta-sts.'+d+' TXT v=STSv1; id='+new Date().toISOString().slice(0,10).replace(/-/g,'')+'\nAlso host https://mta-sts.'+d+'/.well-known/mta-sts.txt with version: STSv1, mode: testing, mx: <verified MX hostname>, max_age: 86400';
+case 'TLS-RPT':return tls?'_smtp._tls.'+d+' TXT v=TLSRPTv1; rua=mailto:'+tls:'Reporting mailbox required';
+case 'BIMI':return 'default._bimi.'+d+' TXT v=BIMI1; l=https://<verified-logo-url> (requires enforced DMARC; do not publish placeholders)';
+}}
+function validate(k,v){if(/required|<|do not publish/i.test(v))return 'WARNING — incomplete configuration';if(k==='SPF'&&v.length>255)return 'WARNING — review TXT string splitting';if(k==='DMARC'&&!/p=(none|quarantine|reject)/.test(v))return 'FAIL — DMARC policy missing';return 'DRAFT — verify DNS, sender alignment and current Google/Yahoo requirements';}
+function render(){const d=$('domain').value.trim().toLowerCase();let lines=['HowTo.Email — Email DNS Policy Builder','Generated: '+new Date().toLocaleString(),'Domain: '+d,'Discovery: '+(scanned?'completed':'not performed'),''];for(const [k] of defs){if(!document.querySelector('[data-tech="'+k+'"]').checked)continue;const after=validDomain(d)?generate(k,d):'Valid domain required';lines.push('Technology: '+k,'Before: '+current(k),'After: '+after,'Status: '+validate(k,after),'');}lines.push('Important: DNS-only checks cannot prove Google/Yahoo sending compliance, DKIM signing, alignment, or deliverability. Test with real mail before enforcement.');$('output').textContent=lines.join('\n')}
+$('modules').innerHTML=defs.map(([k,desc])=>'<div style="margin:1rem 0;padding:1rem;border:1px solid #888;border-radius:.5rem"><label><input type="checkbox" data-tech="'+k+'"> '+k+'</label> <details><summary aria-label="Information about '+k+'">ⓘ Information</summary><p>'+desc+'</p></details></div>').join('');
+document.querySelectorAll('input,select').forEach(el=>el.addEventListener('change',render));$('domain').addEventListener('input',()=>{scanned=false;existing={};render()});
+$('scan').addEventListener('click',async()=>{const d=$('domain').value.trim().toLowerCase();if(!validDomain(d)){$('status').textContent='Enter a valid domain.';return}$('status').textContent='Looking up DNS…';try{const r=await fetch('/api/domain-check?domain='+encodeURIComponent(d));if(!r.ok)throw Error('Lookup unavailable');const j=await r.json();existing=j.results||{};scanned=true;$('status').textContent='DNS lookup completed. Review detected records.';}catch(e){$('status').textContent='DNS lookup unavailable. Generated records are proposals only.'}render()});
+$('copy').addEventListener('click',async()=>{render();try{await navigator.clipboard.writeText($('output').textContent);$('status').textContent='Copied plain-text configuration.'}catch(e){$('status').textContent='Copy blocked by browser; select the text below to copy.'}});
+render();
+</script>
+</Base>
