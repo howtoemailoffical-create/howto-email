@@ -25,7 +25,7 @@ import Base from '../../layouts/Base.astro';
 <label for="rua">DMARC report email<input id="rua" type="email" placeholder="dmarc@example.com"></label>
 <label for="tls-email">TLS-RPT report email<input id="tls-email" type="email" placeholder="tls@example.com"></label>
 <label class="advanced-field" for="policy" hidden>DMARC policy<select id="policy"><option value="none">none — monitor</option><option value="quarantine">quarantine</option><option value="reject">reject</option></select></label>
-<label class="advanced-field" for="spf-custom" hidden>Custom SPF record<input id="spf-custom" placeholder="v=spf1 include:... ~all"></label>
+<input id="spf-custom" type="hidden">
 <label class="advanced-field" for="mx-host" hidden>Verified inbound MX host<input id="mx-host" placeholder="mail.example.com"></label>
 <label class="advanced-field" for="logo" hidden>BIMI logo HTTPS URL<input id="logo" placeholder="https://example.com/logo.svg"></label>
 <label class="advanced-field" for="dmarc-sp" hidden>Subdomain policy<select id="dmarc-sp"><option value="">Inherit main policy</option><option value="none">none</option><option value="quarantine">quarantine</option><option value="reject">reject</option></select></label>
@@ -48,7 +48,7 @@ import Base from '../../layouts/Base.astro';
 </section>
 </Base>
 <style>
-.policy-builder{max-width:1050px;min-width:0;overflow-x:clip}.panel,.module{border:1px solid var(--border,#384456);border-radius:12px;padding:1.15rem;min-width:0;margin-bottom:1rem}.policy-builder input:not([type=checkbox]),.policy-builder select,.policy-builder button{font:inherit;max-width:100%;border:1px solid #64748b;border-radius:7px;padding:.68rem;background:#121d2d;color:inherit}.policy-builder button{cursor:pointer}.policy-builder button:focus-visible,.policy-builder input:focus-visible,.policy-builder select:focus-visible{outline:3px solid #6ba8f4;outline-offset:2px}#scan,#copy-all{background:#245fa9;color:#fff;border-color:#4786d5}.scan-fields{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.7rem;margin-top:.5rem}.builder-layout{display:block;min-width:0}.main-pane,.main-pane>.panel,.modules,.module{min-width:0;max-width:100%;overflow:hidden}.action-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1rem 1.2rem;background:#111e2d;border:1px solid #39475c;border-radius:12px;margin:1rem 0}.action-bar .hint{margin:.35rem 0 0}.check-summary{padding:.5rem 0 1rem;line-height:1.55}.builder-guidance{margin-top:1rem;padding:.8rem;border:1px solid #33465b;border-radius:8px}.builder-guidance summary{cursor:pointer;font-weight:650}.builder-guidance p{line-height:1.55}#output[hidden]{display:none!important}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.fields label{display:grid;gap:.35rem;font-weight:600;min-width:0}.fields label[hidden]{display:none}.fields input,.fields select{width:100%;min-width:0}.hint{opacity:.8;font-size:.9rem;line-height:1.55}.heading-row,.module-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}.mode{display:flex;gap:.35rem}.mode .selected{outline:2px solid #7eb1ec}.modules{display:grid;gap:.7rem}.module h3{font-size:1.1rem;margin:0}.switch{display:flex;align-items:center;gap:.55rem;font-weight:600}.switch input{width:1.2rem;height:1.2rem}.module details{margin:.5rem 0}.module summary{cursor:pointer}.policy-builder .module pre{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#08121f;border:1px solid #304055;border-radius:7px;padding:.8rem;font-size:.84rem;line-height:1.55}.record-label{font-size:.84rem;font-weight:700;opacity:.8}.note{font-size:.87rem}.error{color:#ffa49e}.warning{color:#f3c57b}#status{min-height:1.6em}@media(max-width:900px){.builder-layout{grid-template-columns:minmax(0,1fr)}.report-pane{position:static}}@media(max-width:600px){.fields,.scan-fields{grid-template-columns:minmax(0,1fr)}.mode{width:100%}.mode button{flex:1}}
+.policy-builder{max-width:1050px;min-width:0;overflow-x:clip}.panel,.module{border:1px solid var(--border,#384456);border-radius:12px;padding:1.15rem;min-width:0;margin-bottom:1rem}.policy-builder input:not([type=checkbox]),.policy-builder select,.policy-builder button{font:inherit;max-width:100%;border:1px solid #64748b;border-radius:7px;padding:.68rem;background:#121d2d;color:inherit}.policy-builder button{cursor:pointer}.policy-builder button:focus-visible,.policy-builder input:focus-visible,.policy-builder select:focus-visible{outline:3px solid #6ba8f4;outline-offset:2px}#scan,#copy-all{background:#245fa9;color:#fff;border-color:#4786d5}.scan-fields{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.7rem;margin-top:.5rem}.builder-layout{display:block;min-width:0}.main-pane,.main-pane>.panel,.modules,.module{min-width:0;max-width:100%;overflow:hidden}.action-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1rem 1.2rem;background:#111e2d;border:1px solid #39475c;border-radius:12px;margin:1rem 0}.action-bar .hint{margin:.35rem 0 0}.check-summary{padding:.5rem 0 1rem;line-height:1.55}.builder-guidance{margin-top:1rem;padding:.8rem;border:1px solid #33465b;border-radius:8px}.builder-guidance summary{cursor:pointer;font-weight:650}.builder-guidance p{line-height:1.55}#output[hidden]{display:none!important}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.fields label{display:grid;gap:.35rem;font-weight:600;min-width:0}.fields label[hidden]{display:none}.fields input,.fields select{width:100%;min-width:0}.hint{opacity:.8;font-size:.9rem;line-height:1.55}.heading-row,.module-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}.mode{display:flex;gap:.35rem}.mode .selected{outline:2px solid #7eb1ec}.modules{display:grid;gap:.7rem}.module h3{font-size:1.1rem;margin:0}.switch{display:flex;align-items:center;gap:.55rem;font-weight:600}.switch input{width:1.2rem;height:1.2rem}.module details{margin:.5rem 0}.module summary{cursor:pointer}.policy-builder .module pre{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#08121f;border:1px solid #304055;border-radius:7px;padding:.8rem;font-size:.84rem;line-height:1.55}.spf-editor{margin:1rem 0}.spf-editor label{display:block;font-weight:700;margin-bottom:.5rem}.policy-builder .spf-editor textarea{display:block;width:100%;box-sizing:border-box;max-width:100%;min-height:6rem;padding:.8rem;border:1px solid #64748b;border-radius:8px;background:#101b29;color:inherit;font:inherit;line-height:1.5;resize:vertical;overflow-wrap:anywhere}.policy-builder .spf-editor textarea:focus-visible{outline:3px solid #6ba8f4;outline-offset:2px}.record-label{font-size:.84rem;font-weight:700;opacity:.8}.note{font-size:.87rem}.error{color:#ffa49e}.warning{color:#f3c57b}#status{min-height:1.6em}@media(max-width:900px){.builder-layout{grid-template-columns:minmax(0,1fr)}.report-pane{position:static}}@media(max-width:600px){.fields,.scan-fields{grid-template-columns:minmax(0,1fr)}.mode{width:100%}.mode button{flex:1}}
 </style>
 <script>
 import {validateEmailDns,senderReadinessNote} from '../../lib/email-dns-validation.js';
@@ -85,7 +85,7 @@ function propose(n,d){
  const provider=$('provider').value,selector=$('selector').value.trim(),dkim=$('dkim-value').value.trim(),rua=$('rua').value.trim(),tls=$('tls-email').value.trim(),mx=$('mx-host').value.trim(),logo=$('logo').value.trim();
  if(n==='SPF'){
   const custom=$('spf-custom').value.trim(),value=custom||(provider==='m365'?'v=spf1 include:spf.protection.outlook.com ~all':provider==='google'?'v=spf1 include:_spf.google.com ~all':'');
-  return value?{host:d,type:'TXT',value,notes:['Verify all real senders and the SPF 10-lookup evaluation limit. Do not publish multiple SPF records.']}:{incomplete:'Select one provider or supply the complete SPF policy.'};
+  return value?{host:d,type:'TXT',value,notes:['Verify all real senders and the SPF 10-lookup evaluation limit. Do not publish multiple SPF records.']}:{incomplete:'Enter or edit an SPF record in the SPF section below, or select an outbound provider.'};
  }
  if(n==='DKIM'){
   if(!selector||!dkim)return {incomplete:'Supply the provider-issued selector and public key or CNAME target.'};
@@ -151,7 +151,17 @@ function makeCards(){
   label.append(toggle,document.createTextNode(' Enable'));header.append(heading,label);
   const details=document.createElement('details'),sum=document.createElement('summary');sum.textContent='ⓘ What does this do?';const para=document.createElement('p');para.textContent=descriptions[n];details.append(sum,para);
   const diag=document.createElement('p');diag.className='note diagnostic';const beforelabel=document.createElement('p');beforelabel.className='record-label';beforelabel.textContent='Current record';const pre=document.createElement('pre');pre.className='before';const afterlabel=document.createElement('p');afterlabel.className='record-label';afterlabel.textContent='Proposed record';const post=document.createElement('pre');post.className='after';
-  a.append(header,details,diag,beforelabel,pre,afterlabel,post);toggle.addEventListener('change',build);wrap.append(a);
+  a.append(header,details,diag,beforelabel,pre);
+  if(n==='SPF'){
+   const editor=document.createElement('div');editor.className='spf-editor';
+   const editLabel=document.createElement('label');editLabel.htmlFor='spf-editor';editLabel.textContent='Proposed SPF record — edit here';
+   const field=document.createElement('textarea');field.id='spf-editor';field.rows=3;field.placeholder='v=spf1 ip4:192.0.2.10 include:_spf.example.com ~all';field.spellcheck=false;
+   field.setAttribute('aria-describedby','spf-editor-help');
+   const guidance=document.createElement('p');guidance.id='spf-editor-help';guidance.className='hint';guidance.textContent='The existing record is prefilled after discovery. Edit or append authorized mechanisms; do not replace legitimate senders accidentally. Select a provider above to start from a provider template.';
+   editor.append(editLabel,field,guidance);a.append(editor);
+   field.addEventListener('input',()=>{$('spf-custom').value=field.value;build()});
+  }
+  a.append(afterlabel,post);toggle.addEventListener('change',build);wrap.append(a);
  }
 }
 async function loadDNS(d){
@@ -164,12 +174,25 @@ async function loadDNS(d){
 $('scan-form').addEventListener('submit',async e=>{
  e.preventDefault();const d=$('domain').value.trim().toLowerCase();if(!valid(d)){$('status').textContent='Enter a valid domain.';return}
  $('scan').disabled=true;$('status').textContent='Looking up public DNS…';discovery='checking';build();
- try{snapshot=await loadDNS(d);discovery='complete';scannedAt=new Date().toLocaleString();$('status').textContent='DNS discovery complete. Review changes before publication.';}
+ try{snapshot=await loadDNS(d);discovery='complete';scannedAt=new Date().toLocaleString();
+ const found=snapshot.SPF||[];
+ if(found.length===1){$('spf-editor').value=found[0];$('spf-custom').value=found[0];}
+ else {$('spf-editor').value='';$('spf-custom').value='';}
+ $('status').textContent='DNS discovery complete. Review changes before publication.';}
  catch(e){snapshot={};discovery='unavailable';scannedAt='';$('status').textContent='DNS lookup unavailable. Existing records are unverified; do not publish replacements blindly.'}
  finally{$('scan').disabled=false;build()}
 });
-$('domain').addEventListener('input',()=>{snapshot={};discovery='not scanned';scannedAt='';build()});
-for(const id of ['provider','selector','dkim-value','rua','tls-email','policy','spf-custom','mx-host','logo','dmarc-sp','align-dkim','align-spf','pct'])$(id).addEventListener('input',build);
+$('domain').addEventListener('input',()=>{snapshot={};discovery='not scanned';scannedAt='';$('spf-custom').value='';$('spf-editor').value='';build()});
+for(const id of ['provider','selector','dkim-value','rua','tls-email','policy','mx-host','logo','dmarc-sp','align-dkim','align-spf','pct'])$(id).addEventListener('input',build);
+$('provider').addEventListener('change',()=>{
+ const provider=$('provider').value;
+ if(provider==='google'||provider==='m365'){
+  const starter=provider==='google'?'v=spf1 include:_spf.google.com ~all':'v=spf1 include:spf.protection.outlook.com ~all';
+  if($('spf-editor').value.trim()&&$('spf-editor').value.trim()!==starter){
+   $('status').textContent='Provider selected. Existing SPF preserved in the editor. Review and update it manually to avoid losing authorized senders.';
+  }else{$('spf-editor').value=starter;$('spf-custom').value=starter;build();}
+ }
+});
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{mode=button.dataset.mode;document.querySelectorAll('[data-mode]').forEach(b=>{const active=b===button;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active))});document.querySelectorAll('.advanced-field').forEach(x=>x.hidden=mode!=='advanced');build()}));
 $('copy-all').addEventListener('click',async()=>{
  const value=$('output').value;
