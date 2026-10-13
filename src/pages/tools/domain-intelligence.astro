@@ -1,0 +1,296 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Domain Intelligence Lookup — howto.email" description="Free passive domain intelligence: RDAP registration, public DNS, phishing threat feeds, certificate transparency, and historical website scans.">
+  <section class="wrap page intel">
+    <p class="kicker">TOOLS / DOMAIN INTELLIGENCE</p>
+    <h1>Domain Intelligence Lookup</h1>
+    <p class="lead">Research a domain before trusting a link. Check registration changes, public DNS, phishing intelligence, certificates, and past website observations without visiting the site itself.</p>
+
+    <form id="intel-form" class="intel-form">
+      <div class="intel-inputs">
+        <div><label for="intel-domain">Domain to investigate</label><input id="intel-domain" name="domain" type="text" placeholder="example.com" inputmode="url" spellcheck="false" autocapitalize="off" autocomplete="off" maxlength="300" required aria-describedby="intel-help"></div>
+        <div><label for="intel-official">Known official domain <span>(optional)</span></label><input id="intel-official" name="official" type="text" placeholder="yourbank.com" inputmode="url" spellcheck="false" autocapitalize="off" autocomplete="off" maxlength="300" aria-describedby="intel-help"></div>
+      </div>
+      <p id="intel-help" class="tool-note">To investigate possible bank impersonation, enter the legitimate bank's domain in the second field. This checks for visual and spelling similarities; it does not verify ownership. Domain names are sent to public lookup services.</p>
+      <button type="submit" id="intel-submit">Investigate domain</button>
+    </form>
+    <p id="intel-status" role="status" aria-live="polite" class="intel-status"></p>
+
+    <section id="intel-results" hidden aria-labelledby="intel-results-title">
+      <div class="intel-heading"><div><p class="kicker">PASSIVE LOOKUP</p><h2 id="intel-results-title"></h2><p id="intel-checked" class="tool-note"></p></div><div class="intel-actions"><button type="button" id="intel-copy">Copy JSON</button><a href="/tools/domain-check/">Check email authentication →</a></div></div>
+      <nav class="intel-toc" aria-label="On this page"><a href="#intel-summary">Assessment</a><a href="#intel-registration">Registration</a><a href="#intel-dns">DNS</a><a href="#intel-threat">Threat intelligence</a><a href="#intel-history">History</a><a href="#intel-technical">Technical response</a></nav>
+
+      <section id="intel-summary" class="intel-section" aria-labelledby="intel-summary-title"><h3 id="intel-summary-title">Assessment and next steps</h3><div id="intel-indicators" class="intel-indicators"></div><p class="intel-caveat">Signals are investigative leads, not a safe/malicious verdict. New domains, changes, and new certificates can all be legitimate. A missing threat-feed match never proves a site is safe.</p></section>
+
+      <section id="intel-registration" class="intel-section" aria-labelledby="intel-registration-title"><h3 id="intel-registration-title">Registration (RDAP / modern WHOIS)</h3><p>Current published registration details and registrar-reported events. Not a historical ownership database.</p><div id="intel-registration-body"></div></section>
+
+      <section id="intel-dns" class="intel-section" aria-labelledby="intel-dns-title"><h3 id="intel-dns-title">Current DNS</h3><p>Public resolution of A, AAAA, MX and NS records. Use saved snapshots below to spot changes on return visits.</p><div id="intel-dns-body"></div></section>
+
+      <section id="intel-threat" class="intel-section" aria-labelledby="intel-threat-title"><h3 id="intel-threat-title">Open threat intelligence</h3><p>Results from <a href="https://phishunt.io/api/" rel="noopener noreferrer" target="_blank">phishunt's public, CC0 phishing feed</a>. This feed is not comprehensive, and even listed entries need analyst verification.</p><div id="intel-threat-body"></div></section>
+
+      <section id="intel-history" class="intel-section" aria-labelledby="intel-history-title"><h3 id="intel-history-title">Domain history and change evidence</h3><p>RDAP event dates, public certificate issuance, and historical urlscan observations. These are different kinds of evidence, not historical WHOIS records.</p><div id="intel-timeline"></div>
+        <div class="intel-history-sub"><div><h4>Saved DNS and registration snapshots</h4><p>Saved in this browser only, starting with your first lookup here. No website account or remote historical storage.</p></div><button type="button" id="intel-clear">Clear saved snapshots</button></div><div id="intel-snapshots"></div>
+        <div class="intel-history-grid"><section><h4>Certificate transparency</h4><div id="intel-ct"></div><p><a id="intel-ct-link" target="_blank" rel="noopener noreferrer" href="https://crt.sh/">View certificate database ↗</a></p></section><section><h4>Historical public website scans</h4><div id="intel-scans"></div><p><a id="intel-scans-link" target="_blank" rel="noopener noreferrer" href="https://urlscan.io/">Explore public scans ↗</a></p></section></div>
+      </section>
+      <details id="intel-technical" class="intel-section"><summary>Technical JSON response</summary><pre><code id="intel-json"></code></pre></details>
+      <p class="intel-attribution">Data sources: RDAP.org (registration routing), Cloudflare DNS-over-HTTPS, phishunt, crt.sh, and urlscan.io. Providers may rate-limit or omit records. This tool does not visit, crawl or execute content from the investigated domain.</p>
+    </section>
+  </section>
+</Base>
+
+<script is:inline>
+(function () {
+  const form = document.getElementById('intel-form');
+  const domainField = document.getElementById('intel-domain');
+  const officialField = document.getElementById('intel-official');
+  const status = document.getElementById('intel-status');
+  const output = document.getElementById('intel-results');
+  const submit = document.getElementById('intel-submit');
+  let current = null;
+  const el = (tag, text, className) => {
+    const node = document.createElement(tag);
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    if (className) node.className = className;
+    return node;
+  };
+  const append = (parent, ...children) => children.forEach(x => parent.appendChild(x));
+  const link = (label, href) => {
+    const a = el('a', label);
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    return a;
+  };
+  const clear = id => { const n = document.getElementById(id); n.replaceChildren(); return n; };
+  const fmt = v => { if (!v) return 'Not published'; const d = new Date(v); return Number.isFinite(d.getTime()) ? d.toLocaleString() : 'Not published'; };
+  const days = v => v ? Math.floor((Date.now() - new Date(v).getTime()) / 86400000) : null;
+  function validDomain(text) {
+    let raw = String(text || '').trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0].replace(/\.$/, '');
+    if (!raw || /[\s@\\?#:]/.test(raw)) return null;
+    try { raw = new URL('https://' + raw).hostname; } catch { return null; }
+    return raw.length <= 253 && /^[a-z0-9.-]+$/.test(raw) && raw.includes('.') && raw.split('.').every(x => x.length && x.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(x)) && /[a-z]{2,}$/.test(raw.split('.').at(-1)) ? raw : null;
+  }
+  function message(container, text) { container.appendChild(el('p', text, 'intel-muted')); }
+  function field(container, label, value) {
+    const row = el('div', null, 'intel-field');
+    append(row, el('dt', label), el('dd', value === undefined || value === null || value === '' ? 'Not published' : value));
+    container.appendChild(row);
+  }
+  function sectionError(container, record) {
+    if (record?.status !== 'ok') { message(container, 'Unavailable — ' + (record?.error || 'This source did not return data.')); return true; }
+    return false;
+  }
+  function renderRegistration(data) {
+    const box = clear('intel-registration-body');
+    if (sectionError(box, data)) return;
+    const dl = el('dl', null, 'intel-fields');
+    field(dl, 'Registrar', data.registrar);
+    field(dl, 'Created', fmt(data.registered));
+    field(dl, 'Last registrar-reported change', fmt(data.changed));
+    field(dl, 'Expiration', fmt(data.expires));
+    field(dl, 'RDAP database refresh', fmt(data.databaseUpdated));
+    field(dl, 'Registration statuses', (data.statuses || []).join(', ') || 'Not published');
+    field(dl, 'Registered name servers', (data.nameservers || []).join(', ') || 'Not published');
+    box.appendChild(dl);
+    box.appendChild(link('View original RDAP response ↗', data.source));
+  }
+  function renderDns(data) {
+    const box = clear('intel-dns-body');
+    if (data?.status !== 'ok') { sectionError(box, data); return; }
+    const grid = el('div', null, 'intel-dns-grid');
+    for (const type of ['A','AAAA','MX','NS']) {
+      const cell = el('div', null, 'intel-dns-cell'), vals = data.records?.[type];
+      append(cell, el('strong', type));
+      if (vals?.status !== 'ok') message(cell, 'Lookup unavailable');
+      else if (!vals.values.length) message(cell, 'No record returned');
+      else for (const v of vals.values) cell.appendChild(el('code', v));
+      grid.appendChild(cell);
+    }
+    box.appendChild(grid);
+  }
+  function renderThreat(data) {
+    const box = clear('intel-threat-body');
+    if (sectionError(box, data)) return;
+    const matches = data.matches || [];
+    const summary = el('p', matches.length ? 'Potential match in public phishing intelligence. Verify before taking action.' : 'No matching hosts in this feed at lookup time. This is NOT a clean or safe verdict.', matches.length ? 'intel-warning' : 'intel-muted');
+    box.appendChild(summary);
+    if (data.searchTruncated) message(box, 'Feed search was capped. Additional matches may exist.');
+    for (const m of matches) {
+      const card = el('div', null, 'intel-record');
+      append(card, el('strong', m.host), el('p', 'Targeted brand reported: ' + (m.brand || 'Not supplied')),
+        el('p', 'First seen: ' + fmt(m.firstSeen) + ' · Last seen: ' + fmt(m.lastSeen)),
+        el('p', 'Positive source flags: ' + (m.detections?.join(', ') || 'None reported (heuristic listing)')));
+      box.appendChild(card);
+    }
+  }
+  function similarity(domain, official) {
+    if (!official || domain === official || domain.endsWith('.' + official)) return null;
+    const brand = official.replace(/^www\./, '').split('.')[0];
+    const candidate = domain.replace(/^www\./, '').split('.')[0];
+    if (brand.length < 4) return null;
+    const distance = (a, b) => {
+      let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+      for (let i = 1; i <= a.length; i++) {
+        const next = [i];
+        for (let j = 1; j <= b.length; j++) next[j] = Math.min(next[j - 1] + 1, prev[j] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        prev = next;
+      }
+      return prev[b.length];
+    };
+    return candidate.includes(brand) || distance(candidate, brand) <= 2 || domain.includes(brand + '-') || domain.includes('-' + brand)
+      ? 'The queried domain resembles the comparison domain (' + official + '). Check ownership independently; similar spelling does not establish impersonation.'
+      : null;
+  }
+  function indicators(data, official) {
+    const target = clear('intel-indicators');
+    const items = [];
+    if (data.threat?.status === 'ok' && data.threat.matches?.length) items.push(['Investigate', 'Potential phishing-feed match. Do not enter credentials before independent verification.']);
+    else if (data.threat?.status !== 'ok') items.push(['Unknown', 'Phishing feed unavailable; reputation could not be checked.']);
+    else items.push(['No feed match', 'No current match in this single public phishing feed. Not proof of safety.']);
+    const age = days(data.registration?.registered);
+    const changed = days(data.registration?.changed);
+    if (age !== null && age >= 0 && age <= 90) items.push(['New registration', 'Registered ' + age + ' day(s) ago. Newly registered domains warrant additional scrutiny.']);
+    if (changed !== null && changed >= 0 && changed <= 30) items.push(['Recent registration change', 'Last registrar-reported change ' + changed + ' day(s) ago. This does not explain what changed.']);
+    if (data.registration?.status !== 'ok') items.push(['Unknown', 'Registration details unavailable for this domain/TLD.']);
+    if (domainField.value.includes('xn--') || data.domain.includes('xn--')) items.push(['Check spelling', 'This domain uses internationalized (punycode) labels. Inspect possible lookalike characters.']);
+    const similar = similarity(data.domain, official);
+    if (similar) items.push(['Possible lookalike', similar]);
+    if (items.length === 1 && data.threat?.status === 'ok') items.push(['No recent RDAP flags', 'No recent creation or registrar-change event was available in the returned data.']);
+    for (const [tag, text] of items) {
+      const card = el('div', null, 'intel-signal');
+      append(card, el('strong', tag), el('p', text));
+      target.appendChild(card);
+    }
+  }
+  function renderTimeline(data) {
+    const box = clear('intel-timeline'), events = [];
+    const reg = data.registration || {};
+    for (const [date, label] of [[reg.registered, 'Domain registration'], [reg.changed, 'Last registrar-reported change'], [reg.databaseUpdated, 'RDAP database refresh']]) {
+      if (date) events.push({ date, label, source: 'RDAP' });
+    }
+    for (const c of (data.certificates?.entries || []).slice(0, 8)) {
+      if (c.seen || c.validFrom) events.push({ date: c.seen || c.validFrom, label: 'Certificate logged/valid from: ' + (c.name || data.domain), source: 'Certificate transparency' });
+    }
+    for (const s of (data.scans?.scans || []).slice(0, 8)) {
+      if (s.time) events.push({ date: s.time, label: 'Historical public website scan: ' + (s.title || s.host || data.domain), source: 'urlscan.io' });
+    }
+    events.sort((a,b) => b.date.localeCompare(a.date));
+    if (!events.length) { message(box, 'No dated events returned from available sources.'); return; }
+    const list = el('ol', null, 'intel-timeline');
+    for (const x of events.slice(0, 20)) {
+      const li = el('li');
+      append(li, el('time', fmt(x.date)), el('strong', x.label), el('small', x.source));
+      list.appendChild(li);
+    }
+    box.appendChild(list);
+  }
+  function renderHistorical(data) {
+    const ct = clear('intel-ct'), scan = clear('intel-scans');
+    const cert = data.certificates, captures = data.scans;
+    if (sectionError(ct, cert)) {} else if (!cert.entries.length) message(ct, 'No matching certificate records returned.');
+    else for (const x of cert.entries.slice(0, 10)) {
+      const card = el('div', null, 'intel-record');
+      append(card, el('strong', x.name || 'Certificate'), el('p', 'Logged: ' + fmt(x.seen) + ' · Valid from: ' + fmt(x.validFrom)), el('small', x.issuer || 'Issuer unavailable'));
+      ct.appendChild(card);
+    }
+    if (sectionError(scan, captures)) {} else if (!captures.scans.length) message(scan, 'No historical scans returned.');
+    else for (const s of captures.scans) {
+      const card = el('div', null, 'intel-record');
+      append(card, el('strong', s.title || s.host || 'Public scan'), el('p', fmt(s.time)));
+      if (s.id) card.appendChild(link('Open public scan report ↗', 'https://urlscan.io/result/' + s.id + '/'));
+      scan.appendChild(card);
+    }
+    if (cert?.source) document.getElementById('intel-ct-link').href = cert.source;
+    if (captures?.source) document.getElementById('intel-scans-link').href = captures.source;
+  }
+  const key = 'howto-domain-intel-snapshots-v1';
+  function getSaved() {
+    try { const obj = JSON.parse(localStorage.getItem(key) || '{}'); return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {}; }
+    catch { return {}; }
+  }
+  function fingerprint(d) {
+    const types = ['A','AAAA','MX','NS'], dns = {};
+    for (const type of types) dns[type] = (d.dns?.records?.[type]?.values || []).slice().sort();
+    return { registered: d.registration?.registered || null, changed: d.registration?.changed || null, registrar: d.registration?.registrar || null, nameservers: (d.registration?.nameservers || []).slice().sort(), dns };
+  }
+  function updateHistory(data, save) {
+    const obj = getSaved(), arr = Array.isArray(obj[data.domain]) ? obj[data.domain] : [];
+    const snap = { checkedAt: data.checkedAt, details: fingerprint(data) };
+    if (save && !arr.some(x => x.checkedAt === snap.checkedAt)) arr.unshift(snap);
+    obj[data.domain] = arr.slice(0, 12);
+    const keys = Object.keys(obj).slice(-25);
+    const trimmed = Object.fromEntries(keys.map(k => [k, obj[k]]));
+    if (save) try { localStorage.setItem(key, JSON.stringify(trimmed)); } catch {}
+    const box = clear('intel-snapshots');
+    if (!obj[data.domain]?.length) { message(box, 'No browser snapshots saved yet.'); return; }
+    const history = obj[data.domain];
+    message(box, history.length + ' saved snapshot(s). Only subsequent lookups can show what changed.');
+    for (let i = 0; i < Math.min(history.length, 5); i++) {
+      const snap = history[i], older = history[i + 1], item = el('div', null, 'intel-record');
+      item.appendChild(el('strong', fmt(snap.checkedAt)));
+      if (!older) item.appendChild(el('p', 'Baseline snapshot; no earlier saved records for comparison.'));
+      else {
+        const changes = [];
+        for (const prop of ['registered','changed','registrar','nameservers']) {
+          if (JSON.stringify(snap.details[prop]) !== JSON.stringify(older.details[prop])) changes.push('RDAP ' + prop + ' changed');
+        }
+        for (const type of ['A','AAAA','MX','NS']) {
+          if (JSON.stringify(snap.details.dns?.[type]) !== JSON.stringify(older.details.dns?.[type])) changes.push(type + ' records changed');
+        }
+        item.appendChild(el('p', changes.length ? changes.join(' · ') : 'No difference detected against previous snapshot.'));
+      }
+      box.appendChild(item);
+    }
+  }
+  function render(data, official) {
+    current = data;
+    document.getElementById('intel-results-title').textContent = data.domain;
+    document.getElementById('intel-checked').textContent = 'Checked: ' + fmt(data.checkedAt) + ' · Public sources may be cached for 10 minutes';
+    indicators(data, official); renderRegistration(data.registration); renderDns(data.dns);
+    renderThreat(data.threat); renderTimeline(data); renderHistorical(data);
+    document.getElementById('intel-json').textContent = JSON.stringify(data, null, 2);
+    updateHistory(data, true); output.hidden = false;
+  }
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const domain = validDomain(domainField.value);
+    const comparison = officialField.value.trim() ? validDomain(officialField.value) : null;
+    if (!domain || (officialField.value.trim() && !comparison)) { status.textContent = 'Enter valid domains with a public suffix, such as example.com.'; return; }
+    domainField.value = domain;
+    submit.disabled = true; submit.textContent = 'Looking up…';
+    status.textContent = 'Contacting passive public data sources…';
+    output.hidden = true;
+    try {
+      const response = await fetch('/api/domain-intelligence?domain=' + encodeURIComponent(domain), { headers: { accept: 'application/json' } });
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error || 'Lookup failed.');
+      render(data, comparison);
+      status.textContent = 'Lookup finished. Unavailable sources are marked individually.';
+      const u = new URL(location.href); u.searchParams.set('domain', domain);
+      if (comparison) u.searchParams.set('official', comparison); else u.searchParams.delete('official');
+      history.replaceState(null, '', u.pathname + u.search);
+    } catch (err) {
+      status.textContent = err.message || 'The lookup failed. Please try again.';
+    } finally { submit.disabled = false; submit.textContent = 'Investigate domain'; }
+  });
+  document.getElementById('intel-clear').addEventListener('click', () => {
+    if (!current) return;
+    const obj = getSaved(); delete obj[current.domain];
+    try { localStorage.setItem(key, JSON.stringify(obj)); } catch {}
+    updateHistory(current, false);
+  });
+  document.getElementById('intel-copy').addEventListener('click', async () => {
+    if (!current) return;
+    try { await navigator.clipboard.writeText(JSON.stringify(current, null, 2)); status.textContent = 'JSON copied.'; }
+    catch { status.textContent = 'Clipboard unavailable. Expand Technical JSON response and copy manually.'; }
+  });
+  const params = new URLSearchParams(location.search);
+  const initial = validDomain(params.get('domain'));
+  if (initial) { domainField.value = initial; officialField.value = validDomain(params.get('official')) || ''; form.requestSubmit(); }
+})();
+</script>
+
+<style is:global>
+.intel{max-width:1040px}.intel-form{margin:28px 0 12px;padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:12px}.intel-inputs{display:grid;grid-template-columns:1fr 1fr;gap:16px}.intel-form label{display:block;font-weight:700;margin-bottom:8px}.intel-form label span{font-weight:400;color:var(--muted)}.intel-form input{display:block;width:100%;min-width:0;box-sizing:border-box;padding:12px;border:1px solid #426085;border-radius:8px;background:#080e17;color:var(--text);font:inherit}.intel-form input:focus-visible{outline:3px solid #79b8ff;outline-offset:2px}.intel-form button{min-height:44px;margin-top:12px;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:10px 18px;font:700 .95rem system-ui;cursor:pointer}.intel-form button:disabled{opacity:.65;cursor:wait}.intel-status{min-height:28px;color:#a9c6e5}.intel-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid var(--line);padding-bottom:18px}.intel-heading h2{font-size:clamp(1.6rem,4vw,2.2rem);overflow-wrap:anywhere}.intel-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.intel-actions button,.intel-history-sub button{padding:9px 12px;min-height:44px;border-radius:8px;border:1px solid #426085;background:#0f2438;color:#d9ecff;font:600 .86rem system-ui;cursor:pointer}.intel-toc{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 28px}.intel-toc a{border:1px solid #304b69;border-radius:6px;padding:8px 12px;font-size:.89rem}.intel-section{scroll-margin-top:22px;margin:22px 0;padding:22px;border:1px solid #293e55;border-radius:12px;background:#0b1420;min-width:0}.intel-section h3{margin:0 0 10px;font-size:1.25rem}.intel-section h4{margin:8px 0}.intel-section>p,.intel-history-sub p{color:#a9bbce;font-size:.92rem}.intel-indicators{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px;margin-top:18px}.intel-signal{border:1px solid #3c516a;border-radius:9px;padding:15px;background:#111f30;min-width:0}.intel-signal strong{color:#f6d88a}.intel-signal p{font-size:.88rem;line-height:1.5;overflow-wrap:anywhere;margin-bottom:0}.intel-caveat{font-size:.86rem;color:#a9bbce}.intel-fields{display:grid;gap:0;max-width:100%}.intel-field{display:grid;grid-template-columns:minmax(150px,37%) minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px solid #26374a}.intel-field dt{font-weight:650;color:#9db9d6}.intel-field dd{margin:0;overflow-wrap:anywhere}.intel-dns-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.intel-dns-cell{padding:14px;border:1px solid #263d57;border-radius:8px;background:#08111b;min-width:0}.intel-dns-cell strong{display:block;margin-bottom:8px}.intel-dns-cell code{display:block;margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere;color:#d9e8fa}.intel-muted{color:#9eafc3}.intel-warning{color:#f2ca7a;font-weight:650}.intel-record{border-top:1px solid #2a4159;padding:12px 0;min-width:0;overflow-wrap:anywhere}.intel-record p{margin:6px 0;color:#a9bbce}.intel-record small{color:#9eb5cc}.intel-timeline{list-style:none;margin:14px 0;padding:0;display:grid;gap:12px}.intel-timeline li{border-left:3px solid #447ebc;padding:3px 0 3px 15px}.intel-timeline time,.intel-timeline small,.intel-timeline strong{display:block;overflow-wrap:anywhere}.intel-timeline time,.intel-timeline small{font-size:.8rem;color:#9fb7d0}.intel-timeline strong{margin:4px 0}.intel-history-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:24px}.intel-history-grid>section{min-width:0}.intel-history-sub{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:25px;padding-top:12px;border-top:1px solid #293e55}.intel-history-sub button{flex:none}.intel-attribution{font-size:.82rem;color:#9aadc2;line-height:1.6}#intel-technical summary{cursor:pointer;font-weight:700}#intel-technical pre{overflow:auto;max-height:450px;padding:12px;background:#070d15;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}#intel-technical code{font-size:.82rem}button:focus-visible,a:focus-visible{outline:3px solid #83bbff;outline-offset:3px}@media(max-width:720px){.intel-form{padding:15px}.intel-inputs,.intel-dns-grid,.intel-history-grid{grid-template-columns:1fr}.intel-heading,.intel-history-sub{align-items:flex-start;flex-direction:column}.intel-field{grid-template-columns:1fr;gap:4px}.intel-section{padding:15px}.intel-actions{width:100%}.intel-toc a{flex-grow:1;text-align:center}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>

@@ -15,6 +15,9 @@ import Base from '../layouts/Base.astro';
 <p>Domain Check reports are generated in your browser from the scan results already returned to the page. Copying records, downloading the interactive HTML report, and printing or saving that report as a PDF do not intentionally submit a new Domain Check request. A downloaded report contains the lookup information visible in that report, so treat the file according to your own organization's handling requirements.</p>
 <h2>Third-party infrastructure</h2>
 <p>howto.email currently relies on Cloudflare for site and Worker infrastructure and dmarc.mx for portions of Domain Check analysis. Requests handled by those services may be subject to their own operational logging and privacy practices.</p>
+<h2>Domain Intelligence Lookup</h2>
+<p>When you use Domain Intelligence Lookup, the domain you search is sent to our Cloudflare Worker and then to public data services including RDAP.org, Cloudflare DNS-over-HTTPS, phishunt, crt.sh, and urlscan.io. The optional official-domain comparison is performed in your browser and is not sent to the lookup API. Domain intelligence results may be cached at Cloudflare's edge for up to ten minutes.</p>
+<p>The lookup page stores up to twelve snapshots per domain for up to twenty-five domains in your browser's local storage. These contain the domains searched, lookup times, and publicly available DNS and registration fields. You can clear saved snapshots for a domain from the tool. The site does not provide a synchronized or server-side history database for this feature.</p>
 <h2>Future changes</h2>
 <p>If analytics, persistent history, accounts, additional third-party services, or other data-collecting features are introduced, this notice should be updated to describe them.</p>
 </div></Base>
