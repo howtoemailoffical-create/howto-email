@@ -1,3 +1,4 @@
+import { domainIntelligence } from '../../worker/domain-intelligence.js';
 // Public, stateless, read-only MCP server for howto.email.
 // No database, API keys, or paid services required.
 const SITE = "https://howto.email";
@@ -119,6 +120,7 @@ async function apiResponse(request, url) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: API_HEADERS });
   if (!["GET", "HEAD"].includes(request.method)) return apiJson({ error: "Method not allowed; use GET." }, 405, { allow: "GET, HEAD, OPTIONS" });
   const endpoint = url.pathname.slice(5).replace(/\/$/, "");
+  if (endpoint === "domain-intelligence") return domainIntelligence(request);
   if (endpoint === "" || endpoint === "docs") {
     const body = { service: "howto.email Email DNS API", version: "1", documentation: "https://howto.email/integrations/api/", endpoints: ["/api/analyze", ...Object.keys(API_KINDS).map(k => "/api/" + k)], parameters: { domain: "Required public domain", selector: "Required for DKIM; optional for BIMI, default=default", dkim_selector: "Optional on analyze" }, rate_limit: "Shared with MCP requests; 30 requests/minute per client IP per Cloudflare location", note: "Public DNS observations only. No SMTP connectivity tests." };
     return request.method === "HEAD" ? new Response(null, { headers: API_HEADERS }) : apiJson(body);
