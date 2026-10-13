@@ -10,9 +10,9 @@ import Base from '../../layouts/Base.astro';
     <form id="intel-form" class="intel-form">
       <div class="intel-inputs">
         <div><label for="intel-domain">Domain to investigate</label><input id="intel-domain" name="domain" type="text" placeholder="example.com" inputmode="url" spellcheck="false" autocapitalize="off" autocomplete="off" maxlength="300" required aria-describedby="intel-help"></div>
-        <div><label for="intel-official">Known official domain <span>(optional)</span></label><input id="intel-official" name="official" type="text" placeholder="yourbank.com" inputmode="url" spellcheck="false" autocapitalize="off" autocomplete="off" maxlength="300" aria-describedby="intel-help"></div>
+        <div><label for="intel-official">Known domain <span>(optional)</span></label><input id="intel-official" name="official" type="text" placeholder="example.org" inputmode="url" spellcheck="false" autocapitalize="off" autocomplete="off" maxlength="300" aria-describedby="intel-help"></div>
       </div>
-      <p id="intel-help" class="tool-note">To investigate possible bank impersonation, enter the legitimate bank's domain in the second field. This checks for visual and spelling similarities; it does not verify ownership. Domain names are sent to public lookup services.</p>
+      <p id="intel-help" class="tool-note">Optionally enter a known domain to compare spelling and potential lookalikes. This does not verify ownership. Searched domains are sent to public lookup services.</p>
       <button type="submit" id="intel-submit">Investigate domain</button>
     </form>
     <p id="intel-status" role="status" aria-live="polite" class="intel-status"></p>
@@ -139,7 +139,7 @@ import Base from '../../layouts/Base.astro';
       return prev[b.length];
     };
     return candidate.includes(brand) || distance(candidate, brand) <= 2 || domain.includes(brand + '-') || domain.includes('-' + brand)
-      ? 'The queried domain resembles the comparison domain (' + official + '). Check ownership independently; similar spelling does not establish impersonation.'
+      ? 'The queried domain resembles the known domain (' + official + '). Check ownership independently; similar spelling does not establish impersonation.'
       : null;
   }
   function indicators(data, official) {
