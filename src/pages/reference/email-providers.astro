@@ -20,7 +20,7 @@ const providers = [
 ];
 ---
 <Base title="Email provider authentication directory | howto.email" description="Find guidance for SPF, DKIM and DMARC alignment with popular email hosting, marketing and transactional providers.">
-<main class="wrap provider-page">
+<div class="wrap provider-page">
   <p class="kicker">REFERENCE / EMAIL AUTHENTICATION</p>
   <h1>Email provider authentication directory</h1>
   <p class="lead">Find out how common email services authenticate mail from your domain, what DMARC alignment requires, and where to configure it.</p>
@@ -81,7 +81,7 @@ const providers = [
     <h2 id="sources-title">Sources and further reading</h2>
     <p>Inspired by the provider directory at <a href="https://dmarc.wiki/" target="_blank" rel="noopener noreferrer">DMARC.wiki ↗</a>. The explanations here are independently written for howto.email; verify provider-specific DNS details with the linked vendor documentation. For protocol details, consult <a href="https://www.rfc-editor.org/rfc/rfc7489" target="_blank" rel="noopener noreferrer">RFC 7489 (DMARC) ↗</a>.</p>
   </section>
-</main>
+</div>
 <script>
   const input=document.querySelector<HTMLInputElement>('#provider-search');
   const cards=[...document.querySelectorAll<HTMLElement>('.provider-card')];
