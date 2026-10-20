@@ -1,0 +1,101 @@
+---
+import Base from '../../layouts/Base.astro';
+const providers = [
+  {name:'Fastmail',group:'Email hosting',slug:'fastmail'},
+  {name:'Google Workspace',group:'Email hosting',slug:'google-workspace',spf:'Conditional',dkim:'Supported',note:'Primary domains can align SPF; alias domains generally rely on aligned DKIM.',guide:true},
+  {name:'Microsoft 365',group:'Email hosting',slug:'microsoft-365',spf:'Supported',dkim:'Supported',note:'Custom-domain SPF and DKIM alignment are available.',guide:true},
+  {name:'Amazon SES',group:'Marketing and transactional',slug:'amazon-ses'},
+  {name:'Brevo',group:'Marketing and transactional',slug:'brevo'},
+  {name:'EmailOctopus',group:'Marketing and transactional',slug:'emailoctopus'},
+  {name:'HubSpot',group:'Marketing and transactional',slug:'hubspot'},
+  {name:'Lettermint',group:'Marketing and transactional',slug:'lettermint'},
+  {name:'MailChannels',group:'Marketing and transactional',slug:'mailchannels'},
+  {name:'Mailchimp',group:'Marketing and transactional',slug:'mailchimp',spf:'Conditional',dkim:'Supported',note:'Standard shared sending generally relies on aligned DKIM; SPF alignment may require a dedicated IP.',guide:true},
+  {name:'Mailgun',group:'Marketing and transactional',slug:'mailgun'},
+  {name:'MailPace',group:'Marketing and transactional',slug:'mailpace'},
+  {name:'Resend',group:'Marketing and transactional',slug:'resend'},
+  {name:'Salesforce',group:'Marketing and transactional',slug:'salesforce'},
+  {name:'SendGrid',group:'Marketing and transactional',slug:'sendgrid'},
+  {name:'SMTP2GO',group:'Marketing and transactional',slug:'smtp2go'}
+];
+---
+<Base title="Email provider authentication directory | howto.email" description="Find guidance for SPF, DKIM and DMARC alignment with popular email hosting, marketing and transactional providers.">
+<main class="wrap provider-page">
+  <p class="kicker">REFERENCE / EMAIL AUTHENTICATION</p>
+  <h1>Email provider authentication directory</h1>
+  <p class="lead">Find out how common email services authenticate mail from your domain, what DMARC alignment requires, and where to configure it.</p>
+  <p class="intro-note">This is a practical, vendor-neutral guide. A provider can return SPF or DKIM <em>pass</em> without satisfying DMARC alignment. Always verify the actual From, Return-Path and DKIM signing domains with a test message.</p>
+  <nav class="page-toc" aria-label="On this page"><strong>On this page</strong><a href="#directory">Provider directory</a><a href="#guides">Setup guides</a><a href="#verify">Verify alignment</a><a href="#sources">Sources</a></nav>
+  <section id="directory" aria-labelledby="directory-title">
+    <h2 id="directory-title">Find your provider</h2>
+    <label for="provider-search">Filter by provider name</label>
+    <input id="provider-search" type="search" autocomplete="off" placeholder="Search providers…" aria-describedby="provider-count"/>
+    <p id="provider-count" role="status" aria-live="polite">16 providers</p>
+    <div class="provider-grid">
+      {providers.map(p=><article class="provider-card" data-provider={p.name.toLowerCase()} data-group={p.group}>
+        <p class="provider-type">{p.group}</p>
+        <h3>{p.name}</h3>
+        <dl><div><dt>SPF alignment</dt><dd>{p.spf??'Check provider guide'}</dd></div><div><dt>DKIM alignment</dt><dd>{p.dkim??'Check provider guide'}</dd></div></dl>
+        {p.note&&<p class="provider-note">{p.note}</p>}
+        <div class="provider-links">{p.guide&&<a href={`#guide-${p.slug}`}>Setup notes ↓</a>}<a href={`https://dmarc.wiki/${p.slug}`} target="_blank" rel="noopener noreferrer">External provider reference ↗</a></div>
+      </article>)}
+    </div>
+    <p id="empty-state" hidden>No matching provider found.</p>
+    <p class="small-note">“Check provider guide” means this page has not independently documented the provider's alignment behavior; it does not indicate a failure or lack of support. Features can vary by product, plan and sender configuration.</p>
+  </section>
+  <section id="guides" aria-labelledby="guides-title">
+    <h2 id="guides-title">Configuration notes</h2>
+    <p>These examples are starting points, not a complete SPF record for every organization. Publish <strong>one</strong> SPF TXT record per domain, merging all authorized senders. Never overwrite existing sender mechanisms without reviewing them.</p>
+    <article class="guide" id="guide-google-workspace">
+      <h3>Google Workspace</h3>
+      <p>Google Workspace can align SPF when the message is sent using its primary domain. For alias-domain sending, Google's envelope sender generally stays on the primary domain, so DKIM is the important aligned authentication path.</p>
+      <h4>SPF for Google Workspace</h4>
+      <pre><code>v=spf1 include:_spf.google.com ~all</code></pre>
+      <p>Use this as an example only if Google Workspace is an authorized sender for the SPF domain. If other senders already exist, merge their mechanisms into the single SPF policy.</p>
+      <h4>Enable DKIM</h4><ol><li>Open the Google Admin console and go to Apps → Google Workspace → Gmail → Authenticate email.</li><li>Select your sending domain, generate a 2048-bit DKIM key if available, and copy the TXT host and value supplied by Google.</li><li>Publish the exact DNS record in your DNS provider.</li><li>Return to the console and start authentication; send a test email to confirm an aligned DKIM pass.</li></ol>
+      <p><a href="https://support.google.com/a/answer/174124" target="_blank" rel="noopener noreferrer">Google's DKIM instructions ↗</a></p>
+    </article>
+    <article class="guide" id="guide-microsoft-365">
+      <h3>Microsoft 365</h3>
+      <p>Microsoft 365 supports both SPF and DKIM alignment for custom domains. Check the tenant's product and cloud environment before applying a generic example.</p>
+      <h4>Common commercial-cloud SPF example</h4>
+      <pre><code>v=spf1 include:spf.protection.outlook.com ~all</code></pre>
+      <h4>Enable DKIM</h4><ol><li>Open email authentication settings in the Microsoft Defender portal.</li><li>Select your verified custom domain and request DKIM signing.</li><li>Create the two selector CNAME records using the <strong>exact destinations displayed in your tenant</strong>.</li><li>Enable signing after DNS propagation, then send a test message and inspect the DKIM d= domain.</li></ol>
+      <p><a href="https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dkim-configure" target="_blank" rel="noopener noreferrer">Microsoft's DKIM setup guide ↗</a></p>
+    </article>
+    <article class="guide" id="guide-mailchimp">
+      <h3>Mailchimp</h3>
+      <p>With typical shared sending, Mailchimp uses its own envelope-sender domain. SPF may pass for that domain without aligning with your visible From domain. Authenticate your custom sending domain with DKIM instead. Dedicated-IP arrangements can differ.</p>
+      <h4>Authenticate the sending domain</h4><ol><li>Open Domains in your Mailchimp account and start authentication for the sending domain.</li><li>Copy the DKIM CNAME records provided by your account; do not assume the selector names or destinations are identical for every tenant.</li><li>Publish the records, complete verification, and send a test message.</li><li>Confirm the DKIM d= domain aligns with the visible From domain.</li></ol>
+      <p>Do not add <code>include:servers.mcsv.net</code> simply to fix DMARC when the envelope sender uses Mailchimp's domain; doing so will not change alignment.</p>
+      <p><a href="https://mailchimp.com/help/set-up-email-domain-authentication/" target="_blank" rel="noopener noreferrer">Mailchimp domain authentication guide ↗</a></p>
+    </article>
+    <p class="small-note">Provider behavior can change. Validate changes against current vendor documentation before publishing DNS records.</p>
+  </section>
+  <section id="verify" aria-labelledby="verify-title">
+    <h2 id="verify-title">How to verify DMARC alignment</h2>
+    <ol><li>Send a real message through the provider using your intended From address.</li><li>Inspect the raw headers and find <code>Authentication-Results</code>, <code>Return-Path</code>, and the DKIM <code>d=</code> signing domain.</li><li>For SPF, confirm both <code>spf=pass</code> and that the authenticated envelope-from domain aligns with the visible From domain.</li><li>For DKIM, confirm both <code>dkim=pass</code> and alignment of its <code>d=</code> domain.</li><li>DMARC passes when at least one of those authentication mechanisms passes <em>and</em> aligns. Relaxed versus strict alignment follows your DMARC policy.</li></ol>
+    <p><a href="/tools/header-analyzer/">Analyze a message header →</a> · <a href="/tools/domain-check/">Check a domain's DNS →</a> · <a href="/reference/dmarc/">Read the DMARC reference →</a></p>
+  </section>
+  <section id="sources" aria-labelledby="sources-title">
+    <h2 id="sources-title">Sources and further reading</h2>
+    <p>Inspired by the provider directory at <a href="https://dmarc.wiki/" target="_blank" rel="noopener noreferrer">DMARC.wiki ↗</a>. The explanations here are independently written for howto.email; verify provider-specific DNS details with the linked vendor documentation. For protocol details, consult <a href="https://www.rfc-editor.org/rfc/rfc7489" target="_blank" rel="noopener noreferrer">RFC 7489 (DMARC) ↗</a>.</p>
+  </section>
+</main>
+<script>
+  const input=document.querySelector<HTMLInputElement>('#provider-search');
+  const cards=[...document.querySelectorAll<HTMLElement>('.provider-card')];
+  const count=document.querySelector<HTMLElement>('#provider-count');
+  const empty=document.querySelector<HTMLElement>('#empty-state');
+  input?.addEventListener('input',()=>{
+    const q=input.value.trim().toLocaleLowerCase();
+    let n=0;
+    for(const card of cards){const show=(card.dataset.provider??'').includes(q)||(card.dataset.group??'').toLowerCase().includes(q);card.hidden=!show;if(show)n++;}
+    if(count)count.textContent=`${n} provider${n===1?'':'s'}`;
+    if(empty)empty.hidden=n!==0;
+  });
+</script>
+<style>
+.provider-page{padding:56px 0 85px;min-width:0}.provider-page h1{font-size:clamp(2.1rem,5vw,3.8rem);line-height:1.12;letter-spacing:-.04em;max-width:840px;margin:.3rem 0 1rem}.provider-page section{margin-top:56px;scroll-margin-top:95px}.provider-page h2{font-size:clamp(1.5rem,3vw,2rem);margin-bottom:12px}.provider-page p,.provider-page li{color:#becde0}.intro-note{max-width:850px}.page-toc{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:30px;padding:15px 18px;border:1px solid #26384e;border-radius:12px;background:#0c131e}.page-toc strong{margin-right:6px}.page-toc a{font-size:.9rem}#provider-search{display:block;width:100%;max-width:540px;margin-top:8px;padding:13px 15px;background:#0c131e;border:1px solid #456487;border-radius:9px;color:#edf5ff;font:inherit}#provider-count,.small-note{font-size:.85rem;color:#aabed3}.provider-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:19px}.provider-card{min-width:0;border:1px solid #24354b;background:#0c131e;border-radius:12px;padding:20px;overflow-wrap:anywhere}.provider-card[hidden]{display:none}.provider-type{text-transform:uppercase;letter-spacing:.1em;font-size:.7rem!important;color:#8ab6e7!important;font-weight:750;margin:0}.provider-card h3{margin:.4rem 0 1rem;font-size:1.16rem}.provider-card dl{margin:0}.provider-card dl div{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid #253449;font-size:.84rem}.provider-card dt{color:#b2c1d2}.provider-card dd{margin:0;text-align:right;color:#e0efff;font-weight:650}.provider-card .provider-note{font-size:.85rem;line-height:1.5}.provider-links{display:flex;flex-wrap:wrap;gap:11px;margin-top:16px;font-size:.83rem}.guide{scroll-margin-top:100px;margin:22px 0;padding:24px;border:1px solid #253950;background:#0c131e;border-radius:13px}.guide h3{font-size:1.42rem;margin:0}.guide h4{margin:22px 0 8px}.guide li{margin:7px 0}.guide pre{max-width:100%;overflow:auto;background:#070b12;border:1px solid #2c4059;border-radius:8px;padding:14px}.guide code{overflow-wrap:normal}.guide p code,.provider-page li code{overflow-wrap:anywhere;background:#162235;padding:2px 4px;border-radius:4px}#sources{border-top:1px solid #253950;padding-top:20px}@media(max-width:850px){.provider-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.provider-page{padding-top:32px}.provider-grid{grid-template-columns:1fr}.guide{padding:16px}.page-toc{align-items:flex-start;flex-direction:column;gap:8px}.provider-card dl div{gap:8px}}
+</style>
+</Base>
