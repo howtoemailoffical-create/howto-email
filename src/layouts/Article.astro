@@ -77,7 +77,10 @@ for(const heading of headings){
 }
 if(headings.length>=2)contents.hidden=false;
 document.querySelector('#article-print')?.addEventListener('click',()=>{
-  const help=document.querySelector('#article-print-help');\n  if(help)help.hidden=false;\n  try{window.print()}catch(error){console.warn('Browser print unavailable',error)}\n});
+  const help=document.querySelector('#article-print-help');
+  if(help)help.hidden=false;
+  try{window.print()}catch(error){console.warn('Browser print unavailable',error)}
+});
 const progress=document.querySelector('#article-progress');
 const fill=document.querySelector('#article-progress-fill');
 const article=document.querySelector('#reading-article');
