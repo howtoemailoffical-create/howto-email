@@ -5,6 +5,10 @@ section: Reference
 tags: [DMARC, SPF, DKIM, Authentication]
 ---
 
+**Standards status — RFC 7489 is obsolete.** The current DMARC specifications are [RFC 9989 (protocol)](https://www.rfc-editor.org/rfc/rfc9989), [RFC 9990 (aggregate reporting)](https://www.rfc-editor.org/rfc/rfc9990), and [RFC 9991 (failure reporting)](https://www.rfc-editor.org/rfc/rfc9991). See [DMARC standards status](/reference/dmarc-current-standard/) for more context.
+
+**Earlier updates to RFC 7489:** [RFC 8553](https://www.rfc-editor.org/rfc/rfc8553) and [RFC 8616](https://www.rfc-editor.org/rfc/rfc8616). These updates are historical and do not supersede the current specifications.
+
 DMARC builds on SPF and DKIM. Its key contribution is **alignment**: the authenticated identity has to relate to the domain in the visible `From:` header.
 
 A message passes DMARC when at least one supported path passes **and aligns**:
@@ -30,6 +34,9 @@ A malicious message can be fully authenticated. DMARC is primarily a domain-iden
 
 ## Reference material
 
-- [RFC 7489 — DMARC](https://www.rfc-editor.org/rfc/rfc7489)
+- [RFC 9989 — DMARC protocol specification (current)](https://www.rfc-editor.org/rfc/rfc9989)
+- [RFC 9990 — DMARC aggregate reporting](https://www.rfc-editor.org/rfc/rfc9990)
+- [RFC 9991 — DMARC failure reporting](https://www.rfc-editor.org/rfc/rfc9991)
+- [RFC 7489 — Original DMARC specification (obsolete)](https://www.rfc-editor.org/rfc/rfc7489)
 - [Microsoft — Set up DMARC in Microsoft 365](https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dmarc-configure)
 - [Google — Email sender guidelines](https://support.google.com/a/answer/81126)
