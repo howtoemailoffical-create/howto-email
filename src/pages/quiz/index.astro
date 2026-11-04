@@ -8,7 +8,7 @@ import Base from '../../layouts/Base.astro';
 <p class="lead">A free, browser-only practice quiz. No account, tracking, or saved answers. The formal certificate assessment is not available yet.</p>
 <div class="card" style="max-width:760px;padding:24px">
 <div id="setup"><label for="category">Topic</label> <select id="category"><option value="all">All topics</option><option>Fundamentals</option><option>Authentication</option><option>Security</option><option>Deliverability</option><option>Troubleshooting</option></select>
-<p><button id="start" class="primary-action" type="button">Start practice →</button></p></div>
+<p><label for="count">Questions</label> <select id="count"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="all">All available</option></select></p><p><button id="start" class="primary-action" type="button">Start practice →</button></p></div>
 <div id="quiz" hidden><p id="progress" aria-live="polite"></p><h2 id="question"></h2><form id="answers"><fieldset><legend class="sr-only">Choose one answer</legend><div id="choices"></div></fieldset><button class="primary-action" type="submit">Check answer</button></form><div id="feedback" role="status" aria-live="polite" hidden></div><p><button id="next" type="button" hidden>Next question →</button> <button id="exit" type="button">Finish and view score</button></p></div>
 <div id="results" hidden role="status"><h2>Practice results</h2><p id="score"></p><button id="again" class="primary-action" type="button">Practice again</button></div>
 </div></section>
@@ -33,7 +33,7 @@ const bank=[
 ];
 const $=id=>document.getElementById(id);let questions=[],index=0,correct=0,answered=0;
 function show(id){for(const section of ['setup','quiz','results'])$(section).hidden=section!==id}
-function start(){questions=bank.filter(x=>$('category').value==='all'||x.c===$('category').value).sort(()=>Math.random()-.5);index=correct=answered=0;show('quiz');render()}
+function start(){const pool=bank.filter(x=>$('category').value==='all'||x.c===$('category').value);for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}questions=pool.slice(0,$('count').value==='all'?pool.length:Number($('count').value));index=correct=answered=0;show('quiz');render()}
 function render(){let q=questions[index];$('progress').textContent=`Question ${index+1} of ${questions.length} · ${q.c}`;$('question').textContent=q.q;$('choices').replaceChildren();q.a.forEach((choice,i)=>{let label=document.createElement('label'),input=document.createElement('input');input.type='radio';input.name='answer';input.value=String(i);input.required=true;label.append(input,document.createTextNode(choice));$('choices').append(label)});$('answers').hidden=false;$('feedback').hidden=true;$('next').hidden=true}
 $('start').addEventListener('click',start);$('again').addEventListener('click',start);
 $('answers').addEventListener('submit',e=>{e.preventDefault();let selected=$('answers').querySelector('input:checked');if(!selected)return;let q=questions[index],pass=Number(selected.value)===q.correct;correct+=Number(pass);answered++;$('feedback').replaceChildren(document.createTextNode((pass?'Correct. ':'Not quite. ')+q.why+' '));let link=document.createElement('a');link.href=q.url;link.textContent='Read more →';$('feedback').append(link);$('feedback').hidden=false;$('answers').hidden=true;$('next').hidden=false;$('next').textContent=index===questions.length-1?'View results →':'Next question →'});
