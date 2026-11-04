@@ -1,0 +1,13 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Verify credential — howto.email" description="Check whether a HowToEmail assessment credential was issued by HowToEmail.">
+<section class="wrap page"><p class="kicker">CREDENTIAL VERIFICATION</p><h1>Verify a HowToEmail credential</h1><p class="lead">Verification confirms that HowToEmail signed the assessment result. It does not verify the holder's identity.</p>
+<form id="form"><label for="token">Credential token</label><p><textarea id="token" rows="5" style="width:100%;max-width:750px" required></textarea></p><button class="primary-action">Verify</button></form><div id="result" role="status" aria-live="polite"></div></section>
+<script>
+const token=document.getElementById('token'),result=document.getElementById('result');
+token.value=new URLSearchParams(location.search).get('token')||'';
+async function verify(){result.textContent='Verifying…';try{const r=await fetch('/api/assessment/verify?token='+encodeURIComponent(token.value.trim()),{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error||'Verification unavailable');if(!d.valid){result.textContent='Credential is not valid.';return}const c=d.credential;result.replaceChildren();const title=document.createElement('h2');title.textContent='Valid HowToEmail credential';const info=document.createElement('p');info.textContent=`${c.assessment} · ${c.score}/${c.total} · Issued ${new Date(c.issued).toLocaleDateString()} · ID: ${c.id}`;result.append(title,info)}catch(e){result.textContent='Unable to verify: '+e.message}}
+document.getElementById('form').onsubmit=e=>{e.preventDefault();verify()};if(token.value)verify();
+</script>
+</Base>
