@@ -1,0 +1,43 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Email knowledge quiz — howto.email" description="Practice email infrastructure knowledge with instant explanations. No account or tracking.">
+<section class="wrap page">
+<p class="kicker">LEARN · PRACTICE</p>
+<h1>Test your email knowledge</h1>
+<p class="lead">A free, browser-only practice quiz. No account, tracking, or saved answers. The formal certificate assessment is not available yet.</p>
+<div class="card" style="max-width:760px;padding:24px">
+<div id="setup"><label for="category">Topic</label> <select id="category"><option value="all">All topics</option><option>Fundamentals</option><option>Authentication</option><option>Security</option><option>Deliverability</option><option>Troubleshooting</option></select>
+<p><button id="start" class="primary-action" type="button">Start practice →</button></p></div>
+<div id="quiz" hidden><p id="progress" aria-live="polite"></p><h2 id="question"></h2><form id="answers"><fieldset><legend class="sr-only">Choose one answer</legend><div id="choices"></div></fieldset><button class="primary-action" type="submit">Check answer</button></form><div id="feedback" role="status" aria-live="polite" hidden></div><p><button id="next" type="button" hidden>Next question →</button> <button id="exit" type="button">Finish and view score</button></p></div>
+<div id="results" hidden role="status"><h2>Practice results</h2><p id="score"></p><button id="again" class="primary-action" type="button">Practice again</button></div>
+</div></section>
+<style>
+select{padding:.65rem;background:#102033;color:#fff;border:1px solid #567;border-radius:6px;margin-left:.5rem}
+fieldset{border:0;padding:0;margin:0}#choices label{display:block;padding:.75rem;margin:.5rem 0;border:1px solid #456;border-radius:8px;cursor:pointer}#choices input{margin-right:.75rem}
+#feedback{border-left:3px solid #6ac;padding:1rem;margin-top:1rem;background:#12283a}
+button{cursor:pointer;padding:.7rem 1rem}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #8df;outline-offset:3px}
+</style>
+<script>
+const bank=[
+{c:'Fundamentals',q:'Which protocol transfers mail between mail servers?',a:['SMTP','IMAP','POP3','HTTP'],correct:0,why:'SMTP is the standard protocol for transferring messages between mail servers.',url:'/reference/smtp/'},
+{c:'Fundamentals',q:'What is the purpose of an MX record?',a:['Publish a web server','Identify mail exchangers for a domain','Encrypt message bodies','Define a DMARC policy'],correct:1,why:'MX records specify mail exchangers and their preference values.',url:'/learn/'},
+{c:'Authentication',q:'What does SPF primarily authorize?',a:['The From display name','Sending hosts for a domain','The message subject','Mailbox passwords'],correct:1,why:'SPF checks whether a sending host is authorized by the envelope sender or HELO domain.',url:'/reference/spf/'},
+{c:'Authentication',q:'What does DKIM validate?',a:['A domain-associated cryptographic message signature','The recipient password','MX priority','A TLS certificate chain only'],correct:0,why:'DKIM validates a cryptographic signature covering selected message headers and body.',url:'/reference/dkim/'},
+{c:'Authentication',q:'Which DMARC policy requests rejection of failing mail?',a:['p=none','p=monitor','p=reject','p=pass'],correct:2,why:'DMARC p=reject requests that receivers reject mail failing DMARC evaluation.',url:'/reference/dmarc/'},
+{c:'Security',q:'What does STARTTLS do in SMTP?',a:['Permanently sign a message','Upgrade an existing connection to TLS','Delete spam','Replace SPF'],correct:1,why:'STARTTLS negotiates TLS on an established plaintext-capable SMTP connection.',url:'/reference/smtp/'},
+{c:'Security',q:'Which practice best reduces account takeover risk?',a:['Reuse passwords','Disable logging','Enable multifactor authentication','Publish passwords in DNS'],correct:2,why:'MFA adds an independent authentication factor, reducing risk from stolen passwords.',url:'/learn/'},
+{c:'Deliverability',q:'Does a successful SPF result guarantee inbox placement?',a:['Yes','No'],correct:1,why:'Deliverability also depends on reputation, content, engagement, policy, and other factors.',url:'/reference/spf/'},
+{c:'Deliverability',q:'What is a hard bounce usually associated with?',a:['A permanent delivery failure','A temporary delay','A successful delivery','A DKIM signature'],correct:0,why:'A hard bounce generally describes a permanent delivery failure, such as an invalid recipient.',url:'/troubleshoot/'},
+{c:'Troubleshooting',q:'What is a useful first step when investigating a bounced email?',a:['Delete DNS records','Read the SMTP status and diagnostic response','Disable TLS everywhere','Change the domain registrar'],correct:1,why:'SMTP response codes and diagnostic text help identify the cause and next steps.',url:'/troubleshoot/'}
+];
+const $=id=>document.getElementById(id);let questions=[],index=0,correct=0,answered=0;
+function show(id){for(const section of ['setup','quiz','results'])$(section).hidden=section!==id}
+function start(){questions=bank.filter(x=>$('category').value==='all'||x.c===$('category').value).sort(()=>Math.random()-.5);index=correct=answered=0;show('quiz');render()}
+function render(){let q=questions[index];$('progress').textContent=`Question ${index+1} of ${questions.length} · ${q.c}`;$('question').textContent=q.q;$('choices').replaceChildren();q.a.forEach((choice,i)=>{let label=document.createElement('label'),input=document.createElement('input');input.type='radio';input.name='answer';input.value=String(i);input.required=true;label.append(input,document.createTextNode(choice));$('choices').append(label)});$('answers').hidden=false;$('feedback').hidden=true;$('next').hidden=true}
+$('start').addEventListener('click',start);$('again').addEventListener('click',start);
+$('answers').addEventListener('submit',e=>{e.preventDefault();let selected=$('answers').querySelector('input:checked');if(!selected)return;let q=questions[index],pass=Number(selected.value)===q.correct;correct+=Number(pass);answered++;$('feedback').replaceChildren(document.createTextNode((pass?'Correct. ':'Not quite. ')+q.why+' '));let link=document.createElement('a');link.href=q.url;link.textContent='Read more →';$('feedback').append(link);$('feedback').hidden=false;$('answers').hidden=true;$('next').hidden=false;$('next').textContent=index===questions.length-1?'View results →':'Next question →'});
+function finish(){$('score').textContent=`${correct} correct out of ${answered} answered (${answered?Math.round(correct/answered*100):0}%).`;show('results')}
+$('next').addEventListener('click',()=>{if(++index>=questions.length)finish();else render()});$('exit').addEventListener('click',finish);
+</script>
+</Base>
