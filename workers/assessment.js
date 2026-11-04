@@ -10,7 +10,7 @@ async function key(secret){return crypto.subtle.importKey('raw',enc.encode(secre
 async function sign(k,payload){const body=b64(enc.encode(JSON.stringify(payload)));return body+'.'+b64(await crypto.subtle.sign('HMAC',k,enc.encode(body)))}
 async function verify(k,token){if(typeof token!=='string'||token.length>8000)return null;const parts=token.split('.');if(parts.length!==2)return null;try{if(!await crypto.subtle.verify('HMAC',k,unb64(parts[1]),enc.encode(parts[0])))return null;return JSON.parse(new TextDecoder().decode(unb64(parts[0])))}catch{return null}}
 function sample(items,n){const a=[...items];for(let i=a.length-1;i>0;i--){const v=new Uint32Array(1);crypto.getRandomValues(v);const j=v[0]%(i+1);[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,n)}
-async function bank(env){const b=await env.QUESTION_BANK.get('assessment-v1',{type:'json'});if(!Array.isArray(b)||b.length<200||new Set(b.map(q=>q.id)).size!==b.length)throw Error('Question bank unavailable');return b}
+async function bank(env){const b=await env.QUESTION_BANK.get('assessment-v1',{type:'json'});if(!Array.isArray(b)||b.length<200||new Set(b.map(q=>q.id)).size!==b.length||b.some(q=>typeof q.id!=='string'||typeof q.question!=='string'||!Array.isArray(q.choices)||q.choices.length<2||q.choices.length>6||q.choices.some(c=>typeof c!=='string')||!Number.isInteger(q.correct)||q.correct<0||q.correct>=q.choices.length))throw Error('Question bank unavailable');return b}
 export default {async fetch(request,env){
  const url=new URL(request.url);
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'https://howto.email','access-control-allow-methods':'GET, POST, OPTIONS','access-control-allow-headers':'content-type'}});
@@ -26,8 +26,8 @@ export default {async fetch(request,env){
  if(url.pathname==='/api/assessment/submit'&&request.method==='POST'){
   let data;try{data=await request.json()}catch{return json({error:'Invalid JSON'},400)}
   const p=await verify(k,data?.token);
-  if(!p||p.kind!=='session'||p.version!==1||!Array.isArray(p.ids)||p.ids.length!==40||Date.now()>p.expires||Date.now()<p.issued)return json({error:'Invalid or expired session'},400);
-  if(!data.answers||typeof data.answers!=='object'||Array.isArray(data.answers))return json({error:'Answers required'},400);
+  if(!p||p.kind!=='session'||p.version!==1||!Array.isArray(p.ids)||p.ids.length!==40||new Set(p.ids).size!==40||!Number.isFinite(p.expires)||!Number.isFinite(p.issued)||p.expires-p.issued!==3600000||Date.now()>p.expires||Date.now()<p.issued)return json({error:'Invalid or expired session'},400);
+  if(!data.answers||typeof data.answers!=='object'||Array.isArray(data.answers)||Object.keys(data.answers).length>40)return json({error:'Invalid answers'},400);
   let b;try{b=await bank(env)}catch{return json({error:'Assessment unavailable'},503)}
   const byId=new Map(b.map(q=>[q.id,q]));let score=0;
   for(const id of p.ids){const q=byId.get(id);if(!q)return json({error:'Assessment version unavailable'},409);if(Number.isInteger(data.answers[id])&&data.answers[id]===q.correct)score++}
