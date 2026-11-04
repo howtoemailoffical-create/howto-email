@@ -18,7 +18,7 @@ export default {async fetch(request,env){
  if(!env.SIGNING_SECRET||!env.QUESTION_BANK)return json({error:'Assessment not configured'},503);
  const k=await key(env.SIGNING_SECRET);
  if(url.pathname==='/api/assessment/verify'&&request.method==='GET'){
-  const p=await verify(k,url.searchParams.get('token'));return json({valid:!!(p&&p.kind==='credential'&&p.version===1&&p.passed===true),credential:p?.kind==='credential'?{id:p.id,score:p.score,total:p.total,issued:p.issued,assessment:'HowToEmail Email Knowledge Assessment'}:null});
+  const p=await verify(k,url.searchParams.get('token'));const valid=!!(p&&p.kind==='credential'&&p.version===1&&p.passed===true&&Number.isInteger(p.score)&&p.score>=32&&p.score<=40&&p.total===40&&typeof p.id==='string'&&typeof p.issued==='string');return json({valid,credential:valid?{id:p.id,score:p.score,total:p.total,issued:p.issued,assessment:'HowToEmail Email Knowledge Assessment'}:null});
  }
  if(url.pathname==='/api/assessment/start'&&request.method==='POST'){
   try{const b=await bank(env);const qs=sample(b,40);const issued=Date.now();const ids=qs.map(q=>q.id);const token=await sign(k,{kind:'session',version:1,ids,issued,expires:issued+60*60*1000,nonce:crypto.randomUUID()});return json({token,expires:issued+60*60*1000,questions:qs.map(q=>({id:q.id,category:q.category,question:q.question,choices:q.choices}))})}catch{return json({error:'Assessment unavailable'},503)}
