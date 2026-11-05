@@ -23,6 +23,12 @@ npm run dev
 
 Cloudflare deploys the static Astro output and Worker/API routes from this repository.
 
+## Email knowledge assessment
+
+The /quiz/ practice tool and /quiz/assessment/ 40-question knowledge assessment run against a **private Cloudflare KV question bank**. Passing results are signed and publicly verifiable at /verify/ without user accounts or stored names. The badge is a downloadable PNG and the printable certificate is generated entirely in the browser. This is educational evidence of an assessment result, not a proctored or accredited qualification.
+
+Run `npm test` to execute the JavaScript regression tests, and see `workers/README.md` for the private question bank, Cloudflare secret provisioning and deployment checklist. Do not include the private bank in the public GitHub repository or static build output.
+
 ## Contributing and security
 
 See `CONTRIBUTING.md` before submitting content or code. See `SECURITY.md` for security-reporting guidance.
