@@ -13,7 +13,7 @@ The knowledge base covers SMTP, DNS, SPF, DKIM, DMARC, TLS, deliverability, secu
 Requires Node.js 22 or later.
 
 ```bash
-npm ci
+npm install
 npm run validate
 npm run build
 npm run dev
