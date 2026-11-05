@@ -1,10 +1,10 @@
 # HowToEmail assessment — deployment
 
-This feature branch implements a server-graded educational assessment with practice explanations, a printable certificate, a PNG badge, and signed public verification. It is NOT YET deployed: the Cloudflare environment requires a private question bank and signing secret.
+This feature branch implements a server-graded educational assessment with practice explanations, a printable certificate, a locally generated SVG badge, and signed public verification. It is NOT YET deployed: the Cloudflare environment requires a private question bank and signing secret.
 
 ## Required Cloudflare configuration
 
-The existing howto-email Worker is already configured to serve API routes through worker/index.js and to serve Astro static assets from dist/. The new routes require:
+The existing howto-email Worker in this feature branch is already configured to serve API routes through worker/index.js and to serve Astro static assets from dist/. The new routes require:
 
 - QUESTION_BANK — Workers KV binding with key assessment-v1 containing the private, reviewed JSON array of 200 questions.
 - SIGNING_SECRET — Cloudflare Worker secret with at least 32 random bytes of entropy.
@@ -14,7 +14,7 @@ The private bank must never enter the public repository, the Astro assets, an Ac
 
 ## One-time setup, from an authenticated local clone
 
-1. Run npm install, npm run validate, npm test, and npm run build.
+1. Run npm ci, npm run validate, npm test, and npm run build.
 2. Authenticate with npx wrangler login.
 3. Create KV: npx wrangler kv namespace create howto-email-private-questions --binding QUESTION_BANK --update-config
 4. Ensure wrangler.jsonc contains a kv_namespaces entry with binding QUESTION_BANK and the actual namespace ID returned by Wrangler. Cloudflare can also be configured through the dashboard if that binding is kept in sync with the deployment configuration.
@@ -40,7 +40,7 @@ For a GitHub-connected automatic deployment, configure the same KV binding and s
 
 - Visit https://howto.email/quiz/ and complete a practice quiz: check randomized questions, explanation, reference link, exit score and no account request.
 - Visit https://howto.email/quiz/assessment/ and confirm 40 randomized questions, back/next navigation, answered count and 60-minute timer.
-- In a controlled staging test, pass with 32/40 or higher and confirm the printable certificate, downloadable badge, credential ID and LinkedIn instructions.
+- In a controlled staging test, pass with 32/40 or higher and confirm the printable certificate, downloadable SVG badge, credential ID and LinkedIn instructions.
 - Open https://howto.email/verify/ with a valid credential link, then test a modified token and an invalid token.
 - Confirm mobile and desktop layout, screen reader/keyboard navigation, iOS print to PDF, and that the existing Domain Check and Domain Intelligence tools remain operational.
 
@@ -50,7 +50,7 @@ The app does not create users, save names, store submitted answers, retain ident
 
 The server signs exam sessions and credentials using HMAC-SHA256. Each exam has 40 cryptographically randomized questions and choices; a session expires after 60 minutes and 32 answers must be correct to pass. A bearer verification link confirms issuance and score, NOT identity; a printed name does not constitute identity verification. Verification uses URL fragments and POST to minimize leaked URL query parameters.
 
-This is an educational assessment, not an accredited or proctored professional certification. An anonymous system cannot stop all cheating: practice feedback can be used for learning, exams may be retaken, sequential reuse of submitted exam tokens is rejected using temporary nonce markers, but Cloudflare KV's eventual consistency cannot prevent all simultaneous replay races. Credentials can also be shared. Strong atomic anti-replay would require a different consistency mechanism. Do not advertise tamper-proof testing or identity proof.
+This is an educational assessment, not an accredited or proctored professional certification. An anonymous system cannot stop all cheating: practice feedback can be used for learning, exams may be retaken, sequential reuse of submitted exam tokens is rejected using temporary nonce markers, but Cloudflare KV's eventual consistency cannot prevent all simultaneous replay races. Credentials can also be shared. Strong atomic anti-replay would require a different consistency mechanism. Do not advertise tamper-proof testing or identity proof. An SVG badge by itself is editable and is NOT a proof of issuance; the public signed verification link is authoritative. The name on local certificates and badges is not signed.
 
 The current HMAC key MUST remain stable for long-lived certificate verification; rotating it without multi-key support invalidates old credentials. The optional global limiter does not store client addresses or IDs, but Cloudflare-side protection and logging settings remain infrastructure considerations.
 
