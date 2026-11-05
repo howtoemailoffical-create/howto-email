@@ -1,162 +1,106 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
-<Base title="Practice email knowledge — howto.email" description="Free, private email knowledge quizzes covering SMTP, SPF, DKIM, DMARC, security, and deliverability.">
-  <section class="wrap page quiz-page">
-    <p class="kicker">LEARN · PRACTICE · IMPROVE</p>
-    <h1>Test your email knowledge</h1>
-    <p class="lead">Study with a randomized practice quiz drawn from 200 email questions, with explanations and links to relevant documentation. No accounts or stored answers.</p>
-    <p><a class="primary-action" href="/quiz/assessment/">Take the 40-question assessment →</a></p>
-
-    <div class="card quiz-card" id="quiz-app">
-      <div id="setup">
-        <h2>Set up your practice quiz</h2>
-        <p>Choose a topic or mix all five. You can end a session at any point and view your score.</p>
-        <div class="quiz-controls">
-          <div><label for="category">Topic</label><select id="category">
-            <option value="all">All five topics</option>
-            <option>Fundamentals</option><option>Authentication</option><option>Security</option>
-            <option>Deliverability</option><option>Troubleshooting</option>
-          </select></div>
-          <div><label for="count">Number of questions</label><select id="count">
-            <option value="10">10 questions</option><option value="25">25 questions</option>
-            <option value="50">50 questions (or all available)</option>
-            <option value="all">All available</option>
-          </select></div>
-        </div>
-        <button class="primary-action" id="start" type="button">Start practicing →</button>
+<Base title="Email knowledge quiz — howto.email" description="Practice against a 200-question email engineering question bank. No account, tracking or answer history.">
+<section class="wrap page">
+  <p class="kicker">LEARN · PRACTICE</p>
+  <h1>Test your email knowledge</h1>
+  <p class="lead">Practice with explanations after each answer, or take the 40-question assessment to earn a verifiable certificate. No account or saved results.</p>
+  <p><a class="primary-action" href="/quiz/assessment/">Take the certificate assessment →</a></p>
+  <div class="card quiz-card">
+    <div id="setup">
+      <h2>Set up practice</h2>
+      <div class="form-grid">
+        <label>Topic <select id="category"><option value="all">All topics</option><option>Fundamentals</option><option>Authentication</option><option>Security</option><option>Deliverability</option><option>Troubleshooting</option></select></label>
+        <label>Questions <select id="count"><option value="10">10</option><option value="25">25</option><option value="50">50 (if available)</option><option value="all">All in topic</option></select></label>
       </div>
-
-      <div id="quiz" hidden>
-        <div class="quiz-top"><p id="progress" aria-live="polite"></p><p id="running-score" aria-live="polite"></p></div>
-        <progress id="progress-meter" max="100" value="0" aria-label="Quiz progress"></progress>
-        <p class="kicker" id="topic"></p>
-        <h2 id="question" tabindex="-1"></h2>
-        <form id="answer-form">
-          <fieldset><legend class="sr-only">Select your answer</legend><div id="choices"></div></fieldset>
-          <button class="primary-action" id="check" type="submit">Check answer</button>
-        </form>
-        <div id="feedback" class="quiz-feedback" hidden role="status" aria-live="polite">
-          <p id="feedback-result"></p><p id="feedback-explanation"></p>
-          <p><a id="read-more" href="/learn/">Learn more about this topic →</a></p>
-        </div>
-        <div class="quiz-actions">
-          <button id="next" type="button" hidden>Next question →</button>
-          <button id="exit" type="button">Finish and view score</button>
-        </div>
-      </div>
-
-      <div id="results" hidden role="status" aria-live="polite">
-        <p class="kicker">PRACTICE COMPLETE</p>
-        <h2>Your practice results</h2>
-        <p class="score" id="score"></p>
-        <p id="score-note"></p>
-        <p>No session history or identifying information is saved.</p>
-        <button class="primary-action" id="again" type="button">Practice again →</button>
-        <a class="secondary-action" href="/quiz/assessment/">Try the certificate assessment →</a>
-      </div>
-      <p id="error" class="quiz-error" role="alert" hidden></p>
+      <p class="muted">Questions and answer positions are randomized. Choose an answer to see why it is right or wrong, with a related reference article.</p>
+      <button id="start" type="button" class="primary-action">Start practice →</button>
     </div>
-  </section>
-</Base>
+    <div id="quiz" hidden>
+      <p id="progress" aria-live="polite"></p>
+      <div class="progress-track" aria-hidden="true"><div id="progress-bar"></div></div>
+      <h2 id="question" tabindex="-1"></h2>
+      <form id="answers">
+        <fieldset><legend class="sr-only">Select one answer</legend><div id="choices"></div></fieldset>
+        <button type="submit" class="primary-action">Check answer</button>
+      </form>
+      <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+      <div class="actions"><button id="next" type="button" hidden>Next question →</button><button id="exit" type="button">Finish and view score</button></div>
+    </div>
+    <div id="results" hidden>
+      <h2>Practice results</h2><p id="score" role="status" aria-live="polite"></p>
+      <p class="muted">Results are shown here only; nothing is saved on the server.</p>
+      <button id="again" type="button" class="primary-action">Practice again</button>
+      <a href="/quiz/assessment/">Try the assessment →</a>
+    </div>
+    <p id="error" class="error" role="alert" hidden></p>
+  </div>
+</section>
 <style>
-.quiz-card{max-width:850px;padding:clamp(20px,4vw,36px)}
-.quiz-controls{display:flex;flex-wrap:wrap;gap:20px;margin:24px 0}
-.quiz-controls>div{min-width:min(100%,270px);flex:1}
-.quiz-controls label{display:block;margin-bottom:8px;font-weight:650}
-.quiz-controls select{display:block;width:100%;min-height:44px;padding:10px;border:1px solid #5b7495;border-radius:8px;background:#102033;color:#fff}
-.quiz-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.quiz-top p{margin:0 0 10px}
-progress{display:block;width:100%;height:8px;margin:0 0 24px}
-fieldset{padding:0;margin:0;border:0}
-#choices label{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;margin:10px 0;border:1px solid #486380;border-radius:10px;cursor:pointer}
-#choices label:has(input:checked){border-color:#86caff;background:#17334c}
-#choices input{margin-top:4px;flex:none}
-.quiz-feedback{border-left:4px solid #74c7f5;padding:12px 20px;margin:22px 0;background:#12283c;border-radius:0 8px 8px 0}
-.quiz-feedback p{margin:8px 0}
-.quiz-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}
-.quiz-card button{min-height:44px;padding:10px 18px;cursor:pointer}
-.quiz-card button:disabled{cursor:wait;opacity:.65}
-.quiz-card :is(button,select,input,a):focus-visible{outline:3px solid #89dbff;outline-offset:3px}
-.quiz-error{border-left:4px solid #fba;padding:12px;color:#ffe4dd;background:#4b2129}
-.score{font-size:clamp(2rem,6vw,3.5rem);font-weight:800;margin:16px 0}
-[hidden]{display:none!important}
+.quiz-card{max-width:860px;padding:clamp(16px,3vw,30px)}.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}.form-grid label{display:grid;gap:7px;font-weight:650}.form-grid select{width:100%;padding:12px;background:#102033;color:#fff;border:1px solid #647b97;border-radius:8px}.muted{opacity:.85}fieldset{border:0;padding:0;margin:0}#choices{display:grid;gap:10px;margin:20px 0}#choices label{display:flex;gap:12px;align-items:flex-start;padding:13px;border:1px solid #526b85;border-radius:9px;cursor:pointer;min-height:48px;overflow-wrap:anywhere}#choices label:has(input:checked){border-color:#8bd0ff;background:#15334d}#choices input{margin-top:4px;flex-shrink:0}.progress-track{height:8px;border-radius:8px;background:#293c50;overflow:hidden}.progress-track div{height:100%;width:0;background:#75c8f3;transition:width .2s}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}.feedback{border-left:4px solid #8ac8e8;padding:15px;margin:12px 0;background:#102738;overflow-wrap:anywhere}.feedback p{margin:0 0 8px}.error{border-left:4px solid #f88;background:#381c27;padding:12px}.quiz-card button{cursor:pointer;padding:12px 16px;min-height:44px}.quiz-card button:disabled{opacity:.6;cursor:wait}.quiz-card :is(button,select,input,a):focus-visible{outline:3px solid #9be8ff;outline-offset:3px}[hidden]{display:none!important}
 </style>
 <script>
 const $ = id => document.getElementById(id);
-let token = null, questions = [], index = 0, checked = false, answered = 0, correct = 0;
-function show(panel) {
-  for (const id of ['setup','quiz','results']) $(id).hidden = id !== panel;
+const views = ['setup','quiz','results'];
+let questions=[],session='',index=0,correct=0,answered=0,locked=false;
+function show(view){for(const v of views) $(v).hidden=v!==view}
+function error(message){$('error').textContent=message;$('error').hidden=false}
+function clearError(){$('error').hidden=true;$('error').textContent=''}
+async function api(endpoint,body){
+  const r=await fetch('/api/assessment/'+endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
+  const data=await r.json().catch(()=>({error:'The assessment service returned an invalid response.'}));
+  if(!r.ok)throw Error(data.error||'The assessment service is unavailable.');
+  return data;
 }
-function fail(message) { $('error').textContent = message; $('error').hidden = false; }
-function clearError() { $('error').hidden = true; $('error').textContent = ''; }
-async function post(action, data) {
-  const response = await fetch('/api/assessment/' + action, {
-    method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(data), cache:'no-store'
+function render(){
+  const q=questions[index];locked=false;
+  $('progress').textContent='Question '+(index+1)+' of '+questions.length+' · '+q.category+' · '+correct+' correct';
+  $('progress-bar').style.width=(index/questions.length*100)+'%';
+  $('question').textContent=q.question;
+  const choices=$('choices');choices.replaceChildren();
+  q.choices.forEach((choice,i)=>{
+    const label=document.createElement('label'),input=document.createElement('input');
+    input.type='radio';input.name='answer';input.value=String(i);input.required=true;
+    label.append(input,document.createTextNode(choice));choices.append(label);
   });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Service unavailable');
-  return result;
-}
-function render() {
-  const q = questions[index];
-  checked = false;
-  $('topic').textContent = q.category;
-  $('progress').textContent = 'Question ' + (index + 1) + ' of ' + questions.length;
-  $('running-score').textContent = correct + ' correct · ' + answered + ' answered';
-  $('progress-meter').value = Math.round((index / questions.length) * 100);
-  $('question').textContent = q.question;
-  $('choices').replaceChildren();
-  q.choices.forEach((choice, i) => {
-    const label = document.createElement('label'), input = document.createElement('input'), span = document.createElement('span');
-    input.type = 'radio'; input.name = 'answer'; input.value = String(i); input.required = true;
-    span.textContent = choice; label.append(input, span); $('choices').append(label);
-  });
-  $('answer-form').hidden = false; $('feedback').hidden = true; $('next').hidden = true;
+  $('answers').hidden=false;$('feedback').hidden=true;$('next').hidden=true;
   $('question').focus();
 }
-async function start() {
-  $('start').disabled = true; clearError();
-  try {
-    const data = await post('practice/start', {category:$('category').value, count:$('count').value});
-    token = data.token; questions = data.questions; index = 0; answered = 0; correct = 0;
-    if (!questions.length) throw new Error('There are no questions available for that topic.');
-    show('quiz'); render();
-  } catch (e) { fail(e.message); }
-  finally { $('start').disabled = false; }
+async function start(){
+  clearError();$('start').disabled=true;$('again').disabled=true;
+  try{
+    const d=await api('practice/start',{category:$('category').value,count:$('count').value});
+    questions=d.questions;session=d.token;index=correct=answered=0;show('quiz');render();
+  }catch(e){error(e.message)}
+  finally{$('start').disabled=false;$('again').disabled=false}
 }
-async function checkAnswer(event) {
+function finish(){
+  $('score').textContent=correct+' correct of '+answered+' answered ('+
+    (answered?Math.round(correct/answered*100):0)+'%). '+(questions.length-answered)+' not answered.';
+  show('results');$('progress-bar').style.width='100%';
+}
+$('start').addEventListener('click',start);
+$('again').addEventListener('click',()=>{show('setup');clearError();$('start').focus()});
+$('answers').addEventListener('submit',async event=>{
   event.preventDefault();
-  if (checked) return;
-  const selection = $('answer-form').querySelector('input:checked');
-  if (!selection) { fail('Select an answer to continue.'); return; }
-  const q = questions[index];
-  $('check').disabled = true; clearError();
-  try {
-    const selected = Number(selection.value);
-    const result = await post('practice/check', {token, id:q.id, answer:selected});
-    checked = true; answered++; correct += Number(result.correct);
-    $('feedback-result').textContent = result.correct ? 'Correct!' : 'Not quite. Correct answer: ' + q.choices[result.correctIndex];
-    $('feedback-explanation').textContent = result.explanation;
-    $('read-more').href = result.url;
-    $('feedback').hidden = false; $('answer-form').hidden = true; $('next').hidden = false;
-    $('running-score').textContent = correct + ' correct · ' + answered + ' answered';
-    $('next').textContent = index === questions.length - 1 ? 'View results →' : 'Next question →';
-    $('next').focus();
-  } catch (e) { fail(e.message); }
-  finally { $('check').disabled = false; }
-}
-function finish() {
-  const percentage = answered ? Math.round(100 * correct / answered) : 0;
-  $('score').textContent = correct + '/' + answered + ' (' + percentage + '%)';
-  $('score-note').textContent = 'You answered ' + answered + ' of ' + questions.length + ' questions.';
-  $('progress-meter').value = 100;
-  show('results');
-  token = null; questions = [];
-}
-$('start').addEventListener('click', start);
-$('again').addEventListener('click', () => {clearError();show('setup');});
-$('answer-form').addEventListener('submit', checkAnswer);
-$('next').addEventListener('click', () => {if (++index >= questions.length) finish(); else render();});
-$('exit').addEventListener('click', finish);
+  if(locked)return;
+  const selected=$('answers').querySelector('input:checked');
+  if(!selected){error('Choose an answer first.');return}
+  locked=true;clearError();
+  try{
+    const q=questions[index];
+    const data=await api('practice/check',{token:session,id:q.id,answer:Number(selected.value)});
+    answered++;if(data.correct)correct++;
+    const box=$('feedback');box.replaceChildren();
+    const para=document.createElement('p');para.textContent=(data.correct?'Correct. ':'Not quite. ')+data.explanation;
+    const answer=document.createElement('p');answer.textContent='Correct answer: '+q.choices[data.correctIndex];
+    const link=document.createElement('a');link.href=data.url;link.textContent='Read the related reference →';
+    box.append(para,answer,link);box.hidden=false;$('answers').hidden=true;
+    $('next').hidden=false;$('next').textContent=index===questions.length-1?'View results →':'Next question →';$('next').focus();
+  }catch(e){locked=false;error(e.message)}
+});
+$('next').addEventListener('click',()=>{if(++index>=questions.length)finish();else render()});
+$('exit').addEventListener('click',finish);
 </script>
+</Base>
