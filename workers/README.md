@@ -14,7 +14,7 @@ The private bank must never enter the public repository, the Astro assets, an Ac
 
 ## One-time setup, from an authenticated local clone
 
-1. Run npm ci, npm run validate, npm test, and npm run build.
+1. Run npm install, npm run validate, npm test, and npm run build.
 2. Authenticate with npx wrangler login.
 3. Create KV: npx wrangler kv namespace create howto-email-private-questions --binding QUESTION_BANK --update-config
 4. Ensure wrangler.jsonc contains a kv_namespaces entry with binding QUESTION_BANK and the actual namespace ID returned by Wrangler. Cloudflare can also be configured through the dashboard if that binding is kept in sync with the deployment configuration.
