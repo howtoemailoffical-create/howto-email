@@ -25,7 +25,7 @@ Cloudflare deploys the static Astro output and Worker/API routes from this repos
 
 ## Email knowledge assessment
 
-The /quiz/ practice tool and /quiz/assessment/ 40-question knowledge assessment run against a **private Cloudflare KV question bank**. Passing results are signed and publicly verifiable at /verify/ without user accounts or stored names. The badge is a downloadable PNG and the printable certificate is generated entirely in the browser. This is educational evidence of an assessment result, not a proctored or accredited qualification.
+The /quiz/ practice tool and /quiz/assessment/ 40-question knowledge assessment run against a **private Cloudflare KV question bank**. Passing results are signed and publicly verifiable at /verify/ without user accounts or stored names. The badge is a downloadable SVG and the printable certificate is generated entirely in the browser. Only the signed verification link proves an issued result; names printed on certificates and SVG badges are local display text and are not identity-verified. This is educational evidence of an assessment result, not a proctored or accredited qualification.
 
 Run `npm test` to execute the JavaScript regression tests, and see `workers/README.md` for the private question bank, Cloudflare secret provisioning and deployment checklist. Do not include the private bank in the public GitHub repository or static build output.
 
