@@ -105,9 +105,9 @@ export default {async fetch(request, env) {
   }
   if (!env.SIGNING_SECRET) return json({error: 'Assessment service is not configured'}, 503);
   const key = await signingKey(env.SIGNING_SECRET);
-  if (path === '/api/assessment/verify' && (request.method === 'GET' || request.method === 'POST')) {
+  if (path === '/api/assessment/verify' && request.method === 'POST') {
     let token;
-    try { token = request.method === 'POST' ? (await readBody(request))?.token : url.searchParams.get('token'); }
+    try { token = (await readBody(request))?.token; }
     catch { return json({error: 'Invalid request'}, 400); }
     const p = await verify(key, token);
     const issued = p && typeof p.issued === 'string' ? Date.parse(p.issued) : NaN;
