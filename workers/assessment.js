@@ -102,7 +102,7 @@ export default {async fetch(request, env) {
     const {success} = await env.ASSESSMENT_RATE_LIMITER.limit({key});
     if (!success) return json({error: 'Too many requests. Try again shortly.'}, 429);
   }
-  if (!env.SIGNING_SECRET || !env.QUESTION_BANK) return json({error: 'Assessment service is not configured'}, 503);
+  if (!env.SIGNING_SECRET) return json({error: 'Assessment service is not configured'}, 503);
   const key = await signingKey(env.SIGNING_SECRET);
   if (path === '/api/assessment/verify' && (request.method === 'GET' || request.method === 'POST')) {
     let token;
@@ -117,6 +117,7 @@ export default {async fetch(request, env) {
     return json({valid, credential: valid ? {id: p.id, score: p.score, total: p.total,
       issued: p.issued, assessment: 'HowToEmail Email Knowledge Assessment'} : null});
   }
+  if (!env.QUESTION_BANK) return json({error: 'Assessment question bank is not configured'}, 503);
   if (request.method !== 'POST') return json({error: 'Method not allowed'}, 405);
   let data;
   try { data = await readBody(request); } catch { return json({error: 'Invalid JSON or request too large'}, 400); }
