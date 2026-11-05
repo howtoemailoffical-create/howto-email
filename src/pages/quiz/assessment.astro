@@ -84,8 +84,8 @@ async function api(path,body){
 function remaining(){return Math.max(0,expires-Date.now())}
 function updateStatus(){
   if(!$('exam').hidden && !remaining()){
-    clearInterval(interval);error('Your assessment session expired. Restart to try again.');
-    $('finish').disabled=true;$('next').disabled=true;$('back').disabled=true;
+    clearInterval(interval);show('intro');error('Your assessment session expired. Start a new assessment to try again.');
+    $('finish').disabled=false;$('start').focus();
     return;
   }
   const minutes=Math.floor(remaining()/60000),seconds=Math.floor(remaining()/1000)%60;
@@ -115,6 +115,7 @@ $('start').addEventListener('click',async()=>{
   try{
     const response=await api('start',{});
     token=response.token;questions=response.questions;expires=response.expires;
+    $('finish').disabled=false;
     answers={};index=0;credential='';show('exam');render();
     clearInterval(interval);interval=setInterval(updateStatus,1000);
   }catch(e){error(e.message)}
@@ -165,7 +166,7 @@ $('badge').addEventListener('click',()=>{
   add('text',{x:450,y:104,fill:'#89caff','font-size':46,'font-family':'Arial, sans-serif','font-weight':'bold','text-anchor':'middle'},'howto.email');
   add('text',{x:450,y:191,fill:'#fff','font-size':35,'font-family':'Arial, sans-serif','font-weight':'bold','text-anchor':'middle'},'Email Knowledge Assessment');
   add('text',{x:450,y:246,fill:'#d8edff','font-size':25,'font-family':'Arial, sans-serif','text-anchor':'middle'},'VERIFIED COMPLETION · '+score+'/40');
-  add('text',{x:450,y:307,fill:'#fff','font-size':23,'font-family':'Arial, sans-serif','text-anchor':'middle'},displayName().slice(0,50));
+  add('text',{x:450,y:307,fill:'#fff','font-size':23,'font-family':'Arial, sans-serif','text-anchor':'middle'},displayName().slice(0,36));
   add('text',{x:450,y:365,fill:'#c4d8ea','font-size':18,'font-family':'Arial, sans-serif','text-anchor':'middle'},'Credential: '+credentialId);
   add('text',{x:450,y:415,fill:'#a8bac9','font-size':17,'font-family':'Arial, sans-serif','text-anchor':'middle'},'Independent verification available at howto.email/verify/');
   const blob=new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml;charset=utf-8'});
