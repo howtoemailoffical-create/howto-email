@@ -1,13 +1,65 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
-<Base title="Verify credential — howto.email" description="Check whether a HowToEmail assessment credential was issued by HowToEmail.">
-<section class="wrap page"><p class="kicker">CREDENTIAL VERIFICATION</p><h1>Verify a HowToEmail credential</h1><p class="lead">Verification confirms that HowToEmail signed the assessment result. It does not verify the holder's identity.</p>
-<form id="form"><label for="token">Credential token</label><p><textarea id="token" rows="5" style="width:100%;max-width:750px" required></textarea></p><button class="primary-action">Verify</button></form><div id="result" role="status" aria-live="polite"></div></section>
-<script>
-const token=document.getElementById('token'),result=document.getElementById('result');
-token.value=new URLSearchParams(location.search).get('token')||'';
-async function verify(){result.textContent='Verifying…';try{const r=await fetch('/api/assessment/verify?token='+encodeURIComponent(token.value.trim()),{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error||'Verification unavailable');if(!d.valid){result.textContent='Credential is not valid.';return}const c=d.credential;result.replaceChildren();const title=document.createElement('h2');title.textContent='Valid HowToEmail credential';const info=document.createElement('p');info.textContent=`${c.assessment} · ${c.score}/${c.total} · Issued ${new Date(c.issued).toLocaleDateString()} · ID: ${c.id}`;result.append(title,info)}catch(e){result.textContent='Unable to verify: '+e.message}}
-document.getElementById('form').onsubmit=e=>{e.preventDefault();verify()};if(token.value)verify();
-</script>
+<Base title="Verify an assessment credential — howto.email" description="Independently check the authenticity of a signed HowToEmail Email Knowledge Assessment result.">
+<section class="wrap page">
+  <p class="kicker">PUBLIC CREDENTIAL VERIFICATION</p>
+  <h1>Verify a HowToEmail credential</h1>
+  <p class="lead">Verification confirms that HowToEmail issued the signed result and that its score meets the assessment passing threshold. It <strong>does not</strong> verify the certificate holder's identity or any printed name.</p>
+  <div class="card verify-card">
+    <form id="form">
+      <label for="token">Paste a credential token or full verification link</label>
+      <textarea id="token" rows="4" maxlength="16000" required placeholder="Paste the link from a certificate or the bearer credential token"></textarea>
+      <button type="submit" class="primary-action" id="submit">Verify credential →</button>
+    </form>
+    <div id="result" role="status" aria-live="polite"></div>
+  </div>
+  <p class="verify-note">No account is required. Verification requests are processed without storing an account, a name, or the submitted token. Anyone possessing a link can verify its score and issue date, so treat your link as shareable credential evidence.</p>
+</section>
 </Base>
+<style>
+.verify-card{padding:clamp(20px,4vw,34px);max-width:900px}
+#token{display:block;width:100%;max-width:100%;min-height:120px;margin:12px 0 18px;padding:12px;background:#102033;border:1px solid #6984a5;border-radius:8px;color:white;overflow-wrap:anywhere}
+#submit{min-height:44px;padding:11px 18px;cursor:pointer}
+.verify-card :is(textarea,button):focus-visible{outline:3px solid #9df;outline-offset:3px}
+#result{margin-top:24px;overflow-wrap:anywhere}
+.verify-note{max-width:850px}
+[hidden]{display:none!important}
+</style>
+<script>
+const tokenBox = document.getElementById('token'), result = document.getElementById('result'), submit = document.getElementById('submit');
+function extract(raw) {
+  const value = raw.trim();
+  if (!value.includes('://')) return value;
+  try {
+    const url = new URL(value);
+    if (url.origin !== location.origin || url.pathname.replace(/\/$/, '') !== '/verify') throw Error('Only howto.email verification links are accepted.');
+    return new URLSearchParams(url.hash.slice(1)).get('token') || url.searchParams.get('token') || '';
+  } catch {throw Error('Invalid credential link.');}
+}
+async function verify() {
+  result.textContent = 'Checking the credential signature…'; submit.disabled = true;
+  try {
+    const value = extract(tokenBox.value);
+    if (!value) throw Error('Enter a credential token or link.');
+    const response = await fetch('/api/assessment/verify', {
+      method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:value}),cache:'no-store'
+    });
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || 'Credential verification unavailable');
+    if (!data.valid) {result.textContent = 'This credential is not valid. Check that the link is complete and unchanged.';return;}
+    const c = data.credential;
+    const heading = document.createElement('h2'), detail = document.createElement('p'), note = document.createElement('p');
+    heading.textContent = 'Valid HowToEmail credential';
+    detail.textContent = c.assessment + ' · Score: ' + c.score + '/' + c.total +
+      ' · Issued: ' + new Date(c.issued).toLocaleDateString() + ' · Credential ID: ' + c.id;
+    note.textContent = 'The signed result is authentic. Holder identity is not verified.';
+    result.replaceChildren(heading, detail, note);
+  } catch (e) {result.textContent = 'Unable to verify: ' + e.message;}
+  finally {submit.disabled = false;}
+}
+document.getElementById('form').addEventListener('submit', event => {event.preventDefault();verify();});
+const incoming = new URLSearchParams(location.hash.slice(1)).get('token') ||
+  new URLSearchParams(location.search).get('token');
+if (incoming) {tokenBox.value = incoming;verify();}
+</script>
