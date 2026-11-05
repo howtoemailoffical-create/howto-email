@@ -72,7 +72,8 @@ function validSession(p, kind, n) {
     p.orders.every(v => Array.isArray(v) && v.length === 4 &&
       new Set(v).size === 4 && v.every(i => Number.isInteger(i) && i >= 0 && i < 4)) &&
     Number.isInteger(p.issued) && Number.isInteger(p.expires) && p.expires > Date.now() &&
-    p.issued <= Date.now() + 60000 && p.expires - p.issued === (kind === 'exam' ? 3600000 : 7200000);
+    p.issued <= Date.now() + 60000 && typeof p.nonce === 'string' && /^[a-f\d-]{36}$/i.test(p.nonce) &&
+    p.expires - p.issued === (kind === 'exam' ? 3600000 : 7200000);
 }
 function makeSession(kind, questions) {
   const issued = Date.now();
@@ -172,6 +173,13 @@ export default {async fetch(request, env) {
       if (!q) return json({error: 'Question no longer available'}, 409);
       if (data.answers[q.id] === p.orders[n].indexOf(q.correct)) score++;
     }
+    // Record only an opaque random session nonce, never names, IPs or answers.
+    // KV is eventually consistent: this mitigates sequential replay but not all races.
+    const redemptionKey = 'assessment-redeemed-v2:' + p.nonce;
+    try {
+      if (await env.QUESTION_BANK.get(redemptionKey)) return json({error: 'Assessment already submitted'}, 409);
+      await env.QUESTION_BANK.put(redemptionKey, '1', {expirationTtl: 7200});
+    } catch { return json({error: 'Unable to finalize assessment'}, 503); }
     const passed = score >= 32;
     const result = {score, total: 40, passed, percentage: Math.round(score / 40 * 100)};
     if (passed) {
