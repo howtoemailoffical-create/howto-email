@@ -1,212 +1,180 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
-<Base title="Email knowledge assessment — howto.email" description="Take a free 40-question email knowledge assessment. No account, stored name, or tracking.">
-<section class="wrap page exam-page">
-  <p class="kicker">FREE · OPEN KNOWLEDGE ASSESSMENT</p>
-  <h1>Email Knowledge Assessment</h1>
-  <p class="lead">40 randomized questions · 60 minutes · 80% to pass (32 correct) · unlimited retakes. No account required.</p>
-  <div class="card exam-card">
+<Base title="Email knowledge assessment — howto.email" description="Take a free 40-question email engineering knowledge assessment. Earn a cryptographically verifiable completion badge without an account.">
+<section class="wrap page assessment-page">
+  <p class="kicker">KNOWLEDGE ASSESSMENT</p><h1>Email Knowledge Assessment</h1>
+  <p class="lead">40 randomized questions · 60 minutes · 80% to pass · unlimited retakes. Free, with no account and no name sent to our servers.</p>
+  <div class="card quiz-card">
     <div id="intro">
       <h2>Before you begin</h2>
-      <p>This independently verifiable certificate of completion recognizes a passing score on HowToEmail's knowledge assessment. It is <strong>not</strong> an accredited professional certification and does not validate your identity.</p>
-      <p>Your answers are graded without an account or database history. If you pass, your name is placed on the printable certificate <strong>only in your browser</strong>. Save the credential link yourself; we cannot recover it.</p>
-      <p><a href="/quiz/">Practice before the exam →</a></p>
-      <button class="primary-action" id="start" type="button">Begin assessment →</button>
+      <p>Questions cover SMTP, DNS, SPF, DKIM, DMARC, security, deliverability and troubleshooting. You can go back and change answers. The exam closes after 60 minutes.</p>
+      <p>This is a <strong>knowledge assessment and certificate of completion</strong>, not an accredited industry certification, and it does not verify a participant's legal identity.</p>
+      <button type="button" id="start" class="primary-action">Begin assessment →</button>
     </div>
     <div id="exam" hidden>
-      <div class="exam-meta">
-        <p id="status" aria-live="polite"></p>
-        <p id="timer" role="timer" aria-live="off"></p>
+      <p id="status" role="status" aria-live="polite"></p>
+      <div class="progress-track" aria-hidden="true"><div id="progress-bar"></div></div>
+      <h2 id="question" tabindex="-1"></h2>
+      <fieldset><legend class="sr-only">Choose an answer</legend><div id="options"></div></fieldset>
+      <div class="actions">
+        <button id="back" type="button">← Previous</button>
+        <button id="next" type="button">Next →</button>
+        <button id="finish" type="button" class="primary-action">Submit assessment</button>
       </div>
-      <progress id="progress-meter" value="0" max="40" aria-label="Answered questions"></progress>
-      <p class="kicker" id="topic"></p><h2 id="question" tabindex="-1"></h2>
-      <fieldset><legend class="sr-only">Select one answer</legend><div id="options"></div></fieldset>
-      <div class="exam-actions">
-        <button type="button" id="back">← Previous</button>
-        <button type="button" id="next" class="primary-action">Next question →</button>
-        <button type="button" id="finish">Submit assessment</button>
-      </div>
-      <p class="exam-tip">You can return to previous questions. Unanswered questions count as incorrect.</p>
+      <p class="muted">Answers are scored on the server. Explanations are shown during practice, not this timed assessment.</p>
     </div>
-    <div id="result" hidden role="status" aria-live="polite">
-      <p class="kicker">YOUR ASSESSMENT RESULT</p>
-      <h2 id="result-heading"></h2><p id="score" class="score"></p>
+    <div id="result" hidden>
+      <h2>Assessment results</h2><p id="score" role="status" aria-live="polite"></p>
       <div id="credential" hidden>
-        <p>Your credential is signed by HowToEmail. Save the verification link: without your copy, it cannot be recovered. The display name is not sent to our servers.</p>
-        <label for="display-name">Name to print on the certificate (optional)</label>
-        <input id="display-name" type="text" maxlength="100" autocomplete="off" placeholder="Certificate Holder">
-        <p class="exam-actions">
-          <button id="download" type="button" class="primary-action">Print / save PDF</button>
-          <button id="badge" type="button">Save badge as PNG</button>
-          <button id="copy-link" type="button">Copy verification link</button>
-        </p>
-        <p><a id="verify" rel="noopener" target="_blank">Open credential verification ↗</a></p>
-        <div class="credential-detail">
-          <p><strong>Credential ID:</strong> <span id="credential-id"></span></p>
-          <p><strong>Issued:</strong> <span id="issued"></span></p>
-          <p><strong>LinkedIn:</strong> Add this under <em>Licenses &amp; certifications</em> with title <em>HowToEmail Email Knowledge Assessment</em>, organization <em>HowToEmail</em>, the credential ID above, and your verification link.</p>
+        <h3>Certificate of completion</h3>
+        <p>Enter a name for your local certificate and badge. <strong>It is never uploaded or included in verification.</strong> Anyone with your verification link can see the assessment, score and date, but cannot verify your identity.</p>
+        <label for="display-name">Name to print on certificate</label>
+        <input id="display-name" maxlength="80" autocomplete="off" placeholder="Your preferred display name">
+        <div class="actions">
+          <button type="button" id="download" class="primary-action">Print / save PDF certificate</button>
+          <button type="button" id="badge">Download SVG badge</button>
+          <button type="button" id="copy">Copy verification link</button>
         </div>
+        <p><a id="verify" href="/verify/">Open public verification page →</a></p>
+        <p id="linkedin"></p>
+        <p class="muted">Save the link or your certificate now. Without accounts, we cannot recover issued credentials if you lose the signed token.</p>
       </div>
-      <p><button id="retry" type="button">Start another attempt →</button> <a href="/quiz/">Return to practice</a></p>
+      <button id="retry" type="button" class="primary-action">Take another assessment</button>
+      <a href="/quiz/">Return to practice →</a>
     </div>
-    <p id="error" class="exam-error" role="alert" hidden></p>
+    <p id="error" class="error" role="alert" hidden></p>
   </div>
 </section>
-<section id="certificate" hidden aria-label="Printable certificate">
-  <div class="certificate-inner">
-    <p class="cert-brand">howto.<strong>email</strong></p>
-    <p class="cert-kicker">CERTIFICATE OF COMPLETION</p>
-    <h2>Email Knowledge Assessment</h2>
-    <p>This certifies that</p>
-    <p id="cert-name" class="cert-name"></p>
-    <p>successfully completed the 40-question assessment with a passing score of at least 80%.</p>
-    <p id="cert-score"></p>
-    <p id="cert-issued"></p>
-    <p id="cert-id"></p>
-    <p class="cert-disclaimer">HowToEmail is an educational resource. This certificate is not an accredited professional certification or a guarantee of identity.</p>
-    <p><a id="cert-verify">Verify this result at howto.email</a></p>
+<div id="print-certificate" hidden aria-hidden="true">
+  <div class="certificate-frame">
+    <p class="cert-brand">howto.email</p><h1>Certificate of Completion</h1>
+    <p>This acknowledges that</p><h2 id="cert-name"></h2>
+    <p>passed the <strong>Email Knowledge Assessment</strong></p>
+    <p id="cert-score"></p><p id="cert-issued"></p><p id="cert-id"></p>
+    <p class="cert-note">This is an independently verifiable knowledge assessment, not an accredited professional qualification. Verification confirms issuance and score, not legal identity.</p>
+    <p id="cert-url"></p>
   </div>
-</section>
-</Base>
+</div>
 <style>
-.exam-card{max-width:880px;padding:clamp(20px,4vw,36px)}
-.exam-meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.exam-meta p{margin:0 0 12px}
-progress{display:block;width:100%;height:8px;margin-bottom:22px}
-fieldset{border:0;margin:0;padding:0}
-#options label{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin:10px 0;border:1px solid #486380;border-radius:10px;cursor:pointer}
-#options label:has(input:checked){background:#17334c;border-color:#86caff}
-#options input{margin-top:4px;flex:none}
-.exam-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0}
-.exam-actions button,#start,#retry{min-height:44px;padding:10px 18px;cursor:pointer}
-button:disabled{opacity:.6;cursor:wait}
-#display-name{display:block;width:100%;max-width:460px;min-height:44px;padding:10px;margin:8px 0;background:#102033;border:1px solid #6885a8;border-radius:8px;color:white}
-.exam-card :is(a,button,input):focus-visible{outline:3px solid #89dbff;outline-offset:3px}
-.exam-error{color:#ffe4dd;background:#4b2129;border-left:4px solid #fba;padding:12px}
-.exam-tip{font-size:.9rem;opacity:.85}
-.score{font-size:clamp(2rem,6vw,3.5rem);font-weight:800}
-.credential-detail{border:1px solid #486380;padding:16px 20px;border-radius:8px;overflow-wrap:anywhere;margin:20px 0}
-.credential-detail p{margin:8px 0}
-#certificate{max-width:850px;margin:auto;padding:28px;text-align:center;background:white;color:#112238}
-.certificate-inner{border:8px double #345b83;padding:50px 34px;min-height:550px}
-.cert-brand{font-size:2rem;font-weight:700}
-.cert-kicker{letter-spacing:.25em;font-size:.9rem}
-.cert-name{font-size:2.5rem;font-weight:700;overflow-wrap:anywhere}
-.cert-disclaimer{font-size:.8rem;margin-top:45px}
-[hidden]{display:none!important}
+.quiz-card{max-width:900px;padding:clamp(16px,3vw,30px)}.quiz-card label{display:block;margin-bottom:10px;font-weight:650}.quiz-card input[type=text],#display-name{width:100%;max-width:430px;padding:12px;color:#fff;background:#102033;border:1px solid #6a829b;border-radius:7px}.quiz-card fieldset{padding:0;margin:0;border:0}#options{display:grid;gap:10px;margin:18px 0}#options label{display:flex;align-items:flex-start;gap:12px;padding:13px;border-radius:9px;border:1px solid #526b85;cursor:pointer;min-height:48px;overflow-wrap:anywhere}#options label:has(input:checked){border-color:#8bd0ff;background:#15334d}#options input{margin-top:4px;flex-shrink:0}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}.quiz-card button{padding:11px 15px;min-height:44px;cursor:pointer}.quiz-card button:disabled{opacity:.55;cursor:not-allowed}.quiz-card :is(button,input,a):focus-visible{outline:3px solid #9be8ff;outline-offset:3px}.muted{opacity:.85}.progress-track{height:8px;background:#293c50;border-radius:8px;overflow:hidden}.progress-track div{background:#75c8f3;width:0;height:100%;transition:width .2s}.error{padding:12px;border-left:4px solid #f88;background:#381c27;overflow-wrap:anywhere}[hidden]{display:none!important}
 @media print{
-  @page{size:landscape;margin:12mm}
+  @page{size:landscape;margin:0.45in}
+  body{background:#fff!important;color:#112537!important}
   body *{visibility:hidden!important}
-  #certificate,#certificate *{visibility:visible!important}
-  #certificate{display:block!important;position:absolute;left:0;top:0;width:100%;max-width:none;border:0;margin:0;padding:0}
-  #certificate .certificate-inner{min-height:0;padding:35px}
+  #print-certificate,#print-certificate *{visibility:visible!important}
+  #print-certificate{display:block!important;position:absolute;top:0;left:0;width:100%;font-family:Georgia,serif;color:#112537}
+  .certificate-frame{box-sizing:border-box;text-align:center;border:8px double #153b5a;padding:36px;min-height:550px}
+  .cert-brand{font:700 26px Arial,sans-serif;color:#135d86}.certificate-frame h1{font-size:38px;margin:28px 0}.certificate-frame h2{font-size:32px;margin:18px 0}.cert-note{font-size:12px;margin-top:25px}#cert-url{font-size:10px;overflow-wrap:anywhere}
 }
 </style>
 <script>
-const $ = id => document.getElementById(id);
-let session = null, questions = [], answers = {}, index = 0, deadline = 0,
-  credentialToken = null, credentialId = null, issued = null, totalTimer = null;
-function show(id) {for (const panel of ['intro','exam','result']) $(panel).hidden = panel !== id;}
-function fail(message) {$('error').textContent = message; $('error').hidden = false;}
-function clearError() {$('error').textContent = ''; $('error').hidden = true;}
-async function post(route, body) {
-  const response = await fetch('/api/assessment/' + route, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
-  const data = await response.json();
-  if (!response.ok) throw Error(data.error || 'Assessment service unavailable');
+const $=id=>document.getElementById(id);
+const panes=['intro','exam','result'];
+let token='',questions=[],answers={},index=0,expires=0,credential='',credentialId='',score=0,issued='',interval=null;
+const show=id=>{for(const pane of panes)$(pane).hidden=pane!==id};
+function error(msg){$('error').textContent=msg;$('error').hidden=false}
+function clearError(){$('error').textContent='';$('error').hidden=true}
+async function api(path,body){
+  const r=await fetch('/api/assessment/'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
+  const data=await r.json().catch(()=>({error:'Invalid response from the assessment service.'}));
+  if(!r.ok)throw Error(data.error||'Assessment service unavailable.');
   return data;
 }
-function render() {
-  const q = questions[index];
-  $('status').textContent = 'Question ' + (index + 1) + ' of 40 · ' + Object.keys(answers).length + ' answered';
-  $('progress-meter').value = Object.keys(answers).length;
-  $('topic').textContent = q.category;
-  $('question').textContent = q.question;
-  $('options').replaceChildren();
-  q.choices.forEach((choice, i) => {
-    const label = document.createElement('label'), radio = document.createElement('input'), span = document.createElement('span');
-    radio.type = 'radio'; radio.name = 'answer'; radio.value = String(i);
-    radio.checked = answers[q.id] === i;
-    radio.addEventListener('change', () => {answers[q.id] = i; $('status').textContent = 'Question ' + (index + 1) + ' of 40 · ' + Object.keys(answers).length + ' answered';$('progress-meter').value = Object.keys(answers).length;});
-    span.textContent = choice; label.append(radio, span); $('options').append(label);
+function remaining(){return Math.max(0,expires-Date.now())}
+function updateStatus(){
+  if(!$('exam').hidden && !remaining()){
+    clearInterval(interval);error('Your assessment session expired. Restart to try again.');
+    $('finish').disabled=true;$('next').disabled=true;$('back').disabled=true;
+    return;
+  }
+  const minutes=Math.floor(remaining()/60000),seconds=Math.floor(remaining()/1000)%60;
+  $('status').textContent='Question '+(index+1)+' of '+questions.length+' · '+Object.keys(answers).length+
+    ' answered · '+minutes+':'+String(seconds).padStart(2,'0')+' remaining';
+  $('progress-bar').style.width=Object.keys(answers).length/questions.length*100+'%';
+}
+function render(){
+  const q=questions[index];$('question').textContent=q.question;
+  const options=$('options');options.replaceChildren();
+  q.choices.forEach((choice,i)=>{
+    const label=document.createElement('label'),input=document.createElement('input');
+    input.type='radio';input.name='answer';input.value=String(i);input.checked=answers[q.id]===i;
+    label.append(input,document.createTextNode(choice));options.append(label);
   });
-  $('back').disabled = index === 0;
-  $('next').hidden = index === questions.length - 1;
-  $('question').focus();
+  $('back').disabled=index===0;$('next').disabled=index===questions.length-1;
+  updateStatus();$('question').focus();
 }
-function clearTimer() {if (totalTimer !== null) {clearInterval(totalTimer); totalTimer = null;}}
-function updateTimer() {
-  const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-  const min = Math.floor(remaining / 60), sec = String(remaining % 60).padStart(2, '0');
-  $('timer').textContent = 'Time left: ' + min + ':' + sec;
-  if (remaining <= 0 && !$('exam').hidden) {clearTimer(); session = null; show('intro'); fail('Time expired. This attempt cannot be submitted; start a new assessment.');}
-}
-$('start').addEventListener('click', async () => {
-  $('start').disabled = true; clearError();
-  try {
-    const data = await post('start', {});
-    if (data.questions?.length !== 40) throw Error('The server did not return a complete assessment.');
-    session = data.token; questions = data.questions; answers = {}; index = 0; deadline = data.expires;
-    credentialToken = credentialId = issued = null;
-    show('exam'); render(); updateTimer(); clearTimer(); totalTimer = setInterval(updateTimer, 1000);
-  } catch (e) {fail(e.message);}
-  finally {$('start').disabled = false;}
+$('options').addEventListener('change',event=>{
+  if(event.target.matches('input[type=radio]')){
+    answers[questions[index].id]=Number(event.target.value);
+    updateStatus();
+  }
 });
-$('back').addEventListener('click', () => {if (index > 0) {index--; render();}});
-$('next').addEventListener('click', () => {if (index < questions.length - 1) {index++; render();}});
-$('finish').addEventListener('click', async () => {
-  if (!session) return;
-  const done = Object.keys(answers).length;
-  if (!confirm('Submit this assessment? ' + done + ' of 40 answered. Unanswered questions will be marked incorrect.')) return;
-  $('finish').disabled = true; clearError();
-  try {
-    const data = await post('submit', {token:session, answers});
-    clearTimer(); session = null; questions = []; answers = {};
-    $('result-heading').textContent = data.passed ? 'Congratulations — you passed!' : 'Assessment not passed';
-    $('score').textContent = data.score + ' / ' + data.total + ' (' + data.percentage + '%)';
-    $('credential').hidden = !data.passed;
-    credentialToken = data.credentialToken || null; credentialId = data.credentialId || null; issued = data.issued || null;
-    if (data.passed) {
-      const url = verificationURL();
-      $('verify').href = url;
-      $('credential-id').textContent = credentialId;
-      $('issued').textContent = new Date(issued).toLocaleDateString();
+$('start').addEventListener('click',async()=>{
+  clearError();$('start').disabled=true;
+  try{
+    const response=await api('start',{});
+    token=response.token;questions=response.questions;expires=response.expires;
+    answers={};index=0;credential='';show('exam');render();
+    clearInterval(interval);interval=setInterval(updateStatus,1000);
+  }catch(e){error(e.message)}
+  finally{$('start').disabled=false}
+});
+$('back').addEventListener('click',()=>{if(index>0){index--;render()}});
+$('next').addEventListener('click',()=>{if(index<questions.length-1){index++;render()}});
+$('finish').addEventListener('click',async()=>{
+  if(!remaining()){error('The session has expired. Start a new assessment.');return}
+  if(!confirm('Submit assessment with '+Object.keys(answers).length+' of 40 questions answered?'))return;
+  clearError();$('finish').disabled=true;
+  try{
+    const r=await api('submit',{token,answers});
+    clearInterval(interval);score=r.score;issued=r.issued||'';credential=r.credentialToken||'';
+    credentialId=r.credentialId||'';
+    $('score').textContent=r.score+' / '+r.total+' correct ('+r.percentage+'%). '+(r.passed?'Passed.':'Not passed. 32 correct answers are needed to pass.');
+    $('credential').hidden=!r.passed;
+    if(r.passed){
+      const url=new URL('/verify/',location.origin);url.hash='token='+encodeURIComponent(credential);
+      $('verify').href=url.toString();
+      $('linkedin').textContent='LinkedIn: add “HowToEmail Email Knowledge Assessment” under Licenses & certifications; issuing organization “HowToEmail”; credential ID '+credentialId+'. Paste your verification link as Credential URL.';
     }
     show('result');
-  } catch (e) {fail(e.message);}
-  finally {$('finish').disabled = false;}
+  }catch(e){error(e.message)}
+  finally{$('finish').disabled=false}
 });
-$('retry').addEventListener('click', () => {clearError();show('intro');});
-function verificationURL() {return location.origin + '/verify/#token=' + encodeURIComponent(credentialToken || '');}
-$('copy-link').addEventListener('click', async () => {
-  if (!credentialToken) return;
-  try {await navigator.clipboard.writeText(verificationURL());$('copy-link').textContent = 'Copied!';}
-  catch {window.prompt('Copy your verification link:', verificationURL());}
-});
-$('download').addEventListener('click', () => {
-  if (!credentialToken) return;
-  const name = $('display-name').value.trim() || 'Certificate Holder';
-  $('cert-name').textContent = name;
-  $('cert-score').textContent = $('score').textContent;
-  $('cert-issued').textContent = 'Issued ' + new Date(issued).toLocaleDateString();
-  $('cert-id').textContent = 'Credential ID: ' + credentialId;
-  $('cert-verify').href = verificationURL();
+$('retry').addEventListener('click',()=>{clearError();show('intro');$('start').focus()});
+function displayName(){return $('display-name').value.trim()||'Certificate Holder'}
+function verifyURL(){return $('verify').href}
+$('download').addEventListener('click',()=>{
+  $('cert-name').textContent=displayName();$('cert-score').textContent='Score: '+score+' / 40';
+  $('cert-issued').textContent='Issued: '+new Date(issued).toLocaleDateString();
+  $('cert-id').textContent='Credential ID: '+credentialId;$('cert-url').textContent='Verify: '+verifyURL();
   window.print();
 });
-$('badge').addEventListener('click', () => {
-  if (!credentialToken) return;
-  const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 630;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {fail('Badge graphics are not supported by this browser.');return;}
-  ctx.fillStyle = '#0a1626';ctx.fillRect(0,0,1200,630);
-  ctx.lineWidth = 8;ctx.strokeStyle = '#67d6ff';ctx.strokeRect(24,24,1152,582);
-  ctx.textAlign = 'center';ctx.fillStyle = '#b3ecff';
-  ctx.font = 'bold 58px sans-serif';ctx.fillText('howto.email',600,154);
-  ctx.fillStyle = 'white';ctx.font = 'bold 53px sans-serif';ctx.fillText('EMAIL KNOWLEDGE',600,288);
-  ctx.fillText('ASSESSMENT',600,356);
-  ctx.fillStyle = '#90e9ca';ctx.font = 'bold 42px sans-serif';ctx.fillText('PASSED · 80% MINIMUM',600,441);
-  ctx.fillStyle = '#d1e9ff';ctx.font = '24px monospace';ctx.fillText('Credential ID: '+credentialId,600,525);
-  const anchor = document.createElement('a');anchor.download = 'howto-email-assessment-badge.png';
-  anchor.href = canvas.toDataURL('image/png');anchor.click();
+$('badge').addEventListener('click',()=>{
+  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('xmlns',ns);svg.setAttribute('viewBox','0 0 900 500');svg.setAttribute('role','img');
+  const add=(tag,attrs,value)=>{
+    const el=document.createElementNS(ns,tag);
+    for(const [key,val] of Object.entries(attrs))el.setAttribute(key,String(val));
+    if(value!==undefined)el.textContent=value;
+    svg.append(el);return el;
+  };
+  add('title',{},'HowToEmail Email Knowledge Assessment completion badge');
+  add('rect',{x:0,y:0,width:900,height:500,rx:20,fill:'#0d2439'});
+  add('rect',{x:16,y:16,width:868,height:468,rx:14,fill:'none',stroke:'#89caff','stroke-width':4});
+  add('text',{x:450,y:104,fill:'#89caff','font-size':46,'font-family':'Arial, sans-serif','font-weight':'bold','text-anchor':'middle'},'howto.email');
+  add('text',{x:450,y:191,fill:'#fff','font-size':35,'font-family':'Arial, sans-serif','font-weight':'bold','text-anchor':'middle'},'Email Knowledge Assessment');
+  add('text',{x:450,y:246,fill:'#d8edff','font-size':25,'font-family':'Arial, sans-serif','text-anchor':'middle'},'VERIFIED COMPLETION · '+score+'/40');
+  add('text',{x:450,y:307,fill:'#fff','font-size':23,'font-family':'Arial, sans-serif','text-anchor':'middle'},displayName().slice(0,50));
+  add('text',{x:450,y:365,fill:'#c4d8ea','font-size':18,'font-family':'Arial, sans-serif','text-anchor':'middle'},'Credential: '+credentialId);
+  add('text',{x:450,y:415,fill:'#a8bac9','font-size':17,'font-family':'Arial, sans-serif','text-anchor':'middle'},'Independent verification available at howto.email/verify/');
+  const blob=new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='howto-email-completion-badge.svg';
+  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+$('copy').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(verifyURL());$('copy').textContent='Copied verification link';}
+  catch{error('Copy failed. Open the verification link and copy its address instead.')}
 });
 </script>
+</Base>
