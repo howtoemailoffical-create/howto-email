@@ -15,10 +15,14 @@ const questions = Array.from({length:200}, (_, i) => ({
   url: '/reference/smtp/'
 }));
 let sourceBank = questions;
+const redeemed = new Map();
 const secret = 'local-test-secret-do-not-deploy';
 const env = {
   SIGNING_SECRET: secret,
-  QUESTION_BANK: {get: async () => sourceBank}
+  QUESTION_BANK: {
+    get: async (key) => key === 'assessment-v1' ? sourceBank : redeemed.get(key),
+    put: async (key, value) => {redeemed.set(key, value);}
+  }
 };
 function post(path, body, envOverride = env, origin = 'https://howto.email') {
   return worker.fetch(new Request('https://howto.email/api/assessment/' + path, {
@@ -91,7 +95,8 @@ test('failing or incomplete assessment cannot issue a credential',async () => {
   assert.equal(failed.score,0);
   assert.equal(failed.passed,false);
   assert.equal(failed.credentialToken,undefined);
-  const incomplete = await data('submit',{token:session.token,answers:{}});
+  const retry = await data('start',{});
+  const incomplete = await data('submit',{token:retry.token,answers:{}});
   assert.equal(incomplete.score,0);
   assert.equal(incomplete.passed,false);
 });
@@ -122,4 +127,15 @@ test('rate limiter refuses excessive requests before reading sensitive content',
   const blocked = {...env,ASSESSMENT_RATE_LIMITER:{limit:async()=>({success:false})}};
   const response = await post('start',{},blocked);
   assert.equal(response.status,429);
+});
+test('a completed attempt rejects later sequential submissions without storing identity', async () => {
+  const session = await data('start',{});
+  const answers = correctAnswers(session);
+  const first = await post('submit',{token:session.token,answers});
+  assert.equal(first.status,200);
+  const replay = await post('submit',{token:session.token,answers});
+  assert.equal(replay.status,409);
+  const body = await replay.json();
+  assert.match(body.error, /already submitted/i);
+  assert.ok([...redeemed.keys()].every(k => /^assessment-redeemed-v2:[a-f\\d-]{36}$/i.test(k)));
 });
