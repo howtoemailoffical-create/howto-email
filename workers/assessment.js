@@ -120,6 +120,7 @@ export default {async fetch(request, env) {
   if (request.method !== 'POST') return json({error: 'Method not allowed'}, 405);
   let data;
   try { data = await readBody(request); } catch { return json({error: 'Invalid JSON or request too large'}, 400); }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return json({error: 'Expected a JSON object'}, 400);
   if (path === '/api/assessment/start' || path === '/api/assessment/practice/start') {
     let bank;
     try { bank = await loadBank(env); } catch { return json({error: 'Assessment questions unavailable'}, 503); }
