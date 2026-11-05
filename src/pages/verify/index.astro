@@ -28,7 +28,7 @@ function tokenFrom(value){
     const url=new URL(text);
     if(url.origin!==location.origin || url.pathname.replace(/\/$/,'')!=='/verify')return '';
     const fragment=new URLSearchParams(url.hash.replace(/^#/,''));
-    return fragment.get('token')||url.searchParams.get('token')||'';
+    return fragment.get('token')||'';
   }catch{return text}
 }
 async function verify(){
@@ -52,8 +52,7 @@ document.getElementById('form').addEventListener('submit',e=>{e.preventDefault()
 if(location.hash){
   input.value=new URLSearchParams(location.hash.slice(1)).get('token')||'';
   if(input.value)verify();
-}else if(new URLSearchParams(location.search).has('token')){
-  input.value=new URLSearchParams(location.search).get('token')||'';if(input.value)verify();
+
 }
 </script>
 </Base>
