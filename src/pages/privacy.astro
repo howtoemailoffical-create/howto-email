@@ -4,7 +4,7 @@ import Base from '../layouts/Base.astro';
 <Base title="Privacy | howto.email" description="Privacy information for howto.email documentation and interactive tools.">
 <div class="wrap page article">
 <h1>Privacy</h1>
-<p><strong>Last updated: October 3, 2026</strong></p>
+<p><strong>Last updated: November 4, 2026</strong></p>
 <p>howto.email does not require an account to read its documentation or use the current Domain Check tool.</p>
 <h2>Domain Check</h2>
 <p>When you use Domain Check, the domain name you submit is sent to a howto.email Cloudflare Worker. The Worker requests public email-configuration information from the open-source dmarc.mx lookup service. For some results, such as retrieving a literal DKIM record for a selector discovered by the scanner, the Worker may also perform targeted public DNS lookups.</p>
@@ -18,6 +18,11 @@ import Base from '../layouts/Base.astro';
 <h2>Domain Intelligence Lookup</h2>
 <p>When you use Domain Intelligence Lookup, the domain you search is sent to our Cloudflare Worker and then to public data services including RDAP.org, Cloudflare DNS-over-HTTPS, phishunt, crt.sh, and urlscan.io. The optional official-domain comparison is performed in your browser and is not sent to the lookup API. Domain intelligence results may be cached at Cloudflare's edge for up to ten minutes.</p>
 <p>The lookup page stores up to twelve snapshots per domain for up to twenty-five domains in your browser's local storage. These contain the domains searched, lookup times, and publicly available DNS and registration fields. You can clear saved snapshots for a domain from the tool. The site does not provide a synchronized or server-side history database for this feature.</p>
+<h2>Email knowledge quizzes and certificates</h2>
+<p>Practice and formal assessments do not require an account, name or email address. The browser sends anonymous question selections and a signed, short-lived session token to a Cloudflare Worker for grading. We do not create application-level user profiles or retain practice and exam answers or attempt histories. The private question bank is stored in Cloudflare Workers KV.</p>
+<p>Passing assessments can create a signed bearer credential containing a random credential ID, score and issue date. This credential does not include your name or identity. Your optional name is used only in your browser to create a printable certificate; it is not sent to our service. If you lose your signed token, the application cannot recover it.</p>
+<p>Public verification links contain the credential token in a URL fragment; browsers do not send that fragment to the server with the initial page request. The verification page submits the token directly to our Worker, which checks its signature without storing a verification history. Anyone holding the link can see the score and issue date. A verified result does not establish who took the assessment.</p>
+<p>As with other services on this site, Cloudflare may process operational network metadata in its infrastructure. No claim is made that Cloudflare or a user's browser has no logs; the quiz feature does not intentionally store personal data in its own application database.</p>
 <h2>Future changes</h2>
 <p>If analytics, persistent history, accounts, additional third-party services, or other data-collecting features are introduced, this notice should be updated to describe them.</p>
 </div></Base>
