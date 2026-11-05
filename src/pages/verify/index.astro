@@ -12,6 +12,12 @@ import Base from '../../layouts/Base.astro';
       <textarea id="token" rows="4" maxlength="16000" required placeholder="Paste the link from a certificate or the bearer credential token"></textarea>
       <button type="submit" class="primary-action" id="submit">Verify credential →</button>
     </form>
+    <div id="badge-preview" class="credential-badge" hidden aria-label="Verified assessment badge">
+      <p class="badge-brand">howto.email</p>
+      <p class="badge-name">EMAIL KNOWLEDGE ASSESSMENT</p>
+      <p class="badge-status">VERIFIED PASS</p>
+      <p id="badge-meta"></p>
+    </div>
     <div id="result" role="status" aria-live="polite"></div>
   </div>
   <p class="verify-note">No account is required. Verification requests are processed without storing an account, a name, or the submitted token. Anyone possessing a link can verify its score and issue date, so treat your link as shareable credential evidence.</p>
@@ -23,11 +29,16 @@ import Base from '../../layouts/Base.astro';
 #submit{min-height:44px;padding:11px 18px;cursor:pointer}
 .verify-card :is(textarea,button):focus-visible{outline:3px solid #9df;outline-offset:3px}
 #result{margin-top:24px;overflow-wrap:anywhere}
+.credential-badge{max-width:560px;margin:20px 0;padding:26px 22px;text-align:center;border:4px double #78cfff;border-radius:14px;background:#10243a;color:#eff9ff}
+.badge-brand{font-size:1.3rem;font-weight:750;letter-spacing:.05em}
+.badge-name{font-size:1.65rem;line-height:1.2;font-weight:850}
+.badge-status{font-size:1.1rem;font-weight:800;color:#93ebca;letter-spacing:.13em}
+#badge-meta{font-size:.83rem;overflow-wrap:anywhere}
 .verify-note{max-width:850px}
 [hidden]{display:none!important}
 </style>
 <script>
-const tokenBox = document.getElementById('token'), result = document.getElementById('result'), submit = document.getElementById('submit');
+const tokenBox = document.getElementById('token'), result = document.getElementById('result'), submit = document.getElementById('submit'), badge = document.getElementById('badge-preview');
 function extract(raw) {
   const value = raw.trim();
   if (!value.includes('://')) return value;
@@ -38,7 +49,7 @@ function extract(raw) {
   } catch {throw Error('Invalid credential link.');}
 }
 async function verify() {
-  result.textContent = 'Checking the credential signature…'; submit.disabled = true;
+  result.textContent = 'Checking the credential signature…'; badge.hidden = true; submit.disabled = true;
   try {
     const value = extract(tokenBox.value);
     if (!value) throw Error('Enter a credential token or link.');
@@ -49,6 +60,8 @@ async function verify() {
     if (!response.ok) throw Error(data.error || 'Credential verification unavailable');
     if (!data.valid) {result.textContent = 'This credential is not valid. Check that the link is complete and unchanged.';return;}
     const c = data.credential;
+    document.getElementById('badge-meta').textContent = 'Issued ' + new Date(c.issued).toLocaleDateString() + ' · ID ' + c.id;
+    badge.hidden = false;
     const heading = document.createElement('h2'), detail = document.createElement('p'), note = document.createElement('p');
     heading.textContent = 'Valid HowToEmail credential';
     detail.textContent = c.assessment + ' · Score: ' + c.score + '/' + c.total +
