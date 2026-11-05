@@ -94,7 +94,7 @@ export default {async fetch(request, env) {
     'allow': 'GET, POST, OPTIONS', 'access-control-allow-origin': ORIGIN,
     'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-headers': 'content-type',
     'access-control-max-age': '300', 'vary': 'Origin'}});
-  if (request.headers.get('origin') && request.headers.get('origin') !== ORIGIN) return json({error: 'Origin not allowed'}, 403);
+  if (request.headers.get('origin') && ![ORIGIN, url.origin].includes(request.headers.get('origin'))) return json({error: 'Origin not allowed'}, 403);
   // No per-user profiles or assessment submissions are stored by this service.
   // Optional global rate limiter keeps non-identifying short-lived request counters only.
   if (env.ASSESSMENT_RATE_LIMITER) {
