@@ -96,9 +96,9 @@ export default {async fetch(request, env) {
     'access-control-max-age': '300', 'vary': 'Origin'}});
   if (request.headers.get('origin') && request.headers.get('origin') !== ORIGIN) return json({error: 'Origin not allowed'}, 403);
   // No per-user profiles or assessment submissions are stored by this service.
-  // Cloudflare's approximate rate limiter keeps short-lived counters only.
+  // Optional global rate limiter keeps non-identifying short-lived request counters only.
   if (env.ASSESSMENT_RATE_LIMITER) {
-    const key = path + ':' + (request.headers.get('cf-connecting-ip') || 'anonymous');
+    const key = path; // Global, non-identifying throttle bucket; never store an IP.
     const {success} = await env.ASSESSMENT_RATE_LIMITER.limit({key});
     if (!success) return json({error: 'Too many requests. Try again shortly.'}, 429);
   }
