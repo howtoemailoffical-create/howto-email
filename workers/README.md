@@ -46,11 +46,11 @@ For a GitHub-connected automatic deployment, configure the same KV binding and s
 
 ## Privacy, integrity and trust boundaries
 
-The app does not create users, save names, store submitted answers, retain attempt history, or persist verification tokens. The display name is only inserted by the browser into its own printable certificate. Cloudflare may still process network request metadata under its infrastructure logging policies. The bank and its correct-answer indices live only in a private KV namespace.
+The app does not create users, save names, store submitted answers, retain identifying attempt history, or persist verification tokens. After an exam submission, it stores only a random, non-identifying nonce marker for up to two hours in Workers KV to discourage sequential replay. The display name is only inserted by the browser into its own printable certificate. Cloudflare may still process network request metadata under its infrastructure logging policies. The bank and its correct-answer indices live only in a private KV namespace.
 
 The server signs exam sessions and credentials using HMAC-SHA256. Each exam has 40 cryptographically randomized questions and choices; a session expires after 60 minutes and 32 answers must be correct to pass. A bearer verification link confirms issuance and score, NOT identity; a printed name does not constitute identity verification. Verification uses URL fragments and POST to minimize leaked URL query parameters.
 
-This is an educational assessment, not an accredited or proctored professional certification. An anonymous system cannot stop all cheating: practice feedback can be used for learning, exams may be retaken, signed session tokens can be replayed until expiry, and credentials can be shared. Strong anti-replay would require additional server-side storage. Do not advertise tamper-proof testing or identity proof.
+This is an educational assessment, not an accredited or proctored professional certification. An anonymous system cannot stop all cheating: practice feedback can be used for learning, exams may be retaken, sequential reuse of submitted exam tokens is rejected using temporary nonce markers, but Cloudflare KV's eventual consistency cannot prevent all simultaneous replay races. Credentials can also be shared. Strong atomic anti-replay would require a different consistency mechanism. Do not advertise tamper-proof testing or identity proof.
 
 The current HMAC key MUST remain stable for long-lived certificate verification; rotating it without multi-key support invalidates old credentials. The optional global limiter does not store client addresses or IDs, but Cloudflare-side protection and logging settings remain infrastructure considerations.
 
