@@ -1,0 +1,58 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Verify a HowToEmail credential — howto.email" description="Independently verify an email knowledge assessment result using its signed credential token. No login required.">
+<section class="wrap page">
+  <p class="kicker">CREDENTIAL VERIFICATION</p><h1>Verify a HowToEmail credential</h1>
+  <p class="lead">Verify that a passing assessment result was issued by HowToEmail. Verification does not establish the participant's name, legal identity, or professional accreditation.</p>
+  <div class="card verify-card">
+    <form id="form">
+      <label for="token">Verification URL or signed credential token</label>
+      <textarea id="token" rows="5" spellcheck="false" autocomplete="off" required placeholder="Paste a verification URL or the token from your certificate"></textarea>
+      <button class="primary-action" type="submit">Verify credential</button>
+    </form>
+    <div id="result" aria-live="polite" role="status"></div>
+  </div>
+  <p><a href="/quiz/assessment/">Take the assessment →</a></p>
+  <p>Credential links contain an encoded, signed result; anyone you share a link with can view the issuing date, credential ID, and score. The verification token appears in the URL fragment so it is not transmitted in the page's HTTP request or server access logs. The token is submitted to the verification API only when checking validity.</p>
+</section>
+<style>
+.verify-card{max-width:850px;padding:clamp(16px,3vw,30px)}#form label{display:block;font-weight:650;margin-bottom:10px}#token{box-sizing:border-box;width:100%;padding:12px;background:#102033;border:1px solid #6e8ba8;color:#fff;border-radius:7px;overflow-wrap:anywhere}#form button{padding:12px 16px;min-height:44px;margin:14px 0;cursor:pointer}#form :is(button,textarea):focus-visible{outline:3px solid #9be8ff;outline-offset:3px}#result{overflow-wrap:anywhere}#result h2{margin-bottom:8px}.verified{border-left:4px solid #7dd4ac;padding:12px;background:#12322c}.not-verified{border-left:4px solid #f8b36c;padding:12px;background:#342c22}
+</style>
+<script>
+const input=document.getElementById('token'),result=document.getElementById('result');
+function tokenFrom(value){
+  const text=value.trim();
+  if(!text)return '';
+  try{
+    const url=new URL(text);
+    if(url.origin!==location.origin || url.pathname.replace(/\/$/,'')!=='/verify')return '';
+    const fragment=new URLSearchParams(url.hash.replace(/^#/,''));
+    return fragment.get('token')||'';
+  }catch{return text}
+}
+async function verify(){
+  const token=tokenFrom(input.value);
+  if(!token){result.textContent='Enter a valid token or a verification link from howto.email.';result.className='not-verified';return}
+  result.textContent='Checking signature…';result.className='';
+  try{
+    const response=await fetch('/api/assessment/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token}),cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok)throw Error(data.error||'Verification unavailable');
+    if(!data.valid){result.textContent='Credential not valid. Check that the entire token was copied correctly.';result.className='not-verified';return}
+    const c=data.credential,title=document.createElement('h2'),detail=document.createElement('p');
+    title.textContent='Valid HowToEmail completion credential';
+    detail.textContent=c.assessment+' · '+c.score+'/'+c.total+' · Issued '+new Date(c.issued).toLocaleDateString()+' · Credential ID: '+c.id;
+    const note=document.createElement('p');
+    note.textContent='The signed score and issuance were verified. A name printed on a local certificate or badge is not independently verified.';
+    result.replaceChildren(title,detail,note);result.className='verified';
+  }catch(e){result.textContent='Unable to verify: '+e.message;result.className='not-verified'}
+}
+document.getElementById('form').addEventListener('submit',e=>{e.preventDefault();verify()});
+if(location.hash){
+  input.value=new URLSearchParams(location.hash.slice(1)).get('token')||'';
+  if(input.value)verify();
+
+}
+</script>
+</Base>
