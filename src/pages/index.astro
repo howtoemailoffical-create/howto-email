@@ -2,13 +2,34 @@
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 const articles=await getCollection('articles');
-const counts={Learn:articles.filter(a=>a.data.section==='Learn').length,Reference:articles.filter(a=>a.data.section==='Reference').length,Do:articles.filter(a=>a.data.section==='Do').length};
-const total=articles.length;
+const count=section=>articles.filter(a=>a.data.section===section).length;
 ---
-<Base title="howto.email" description="Free, vendor-neutral documentation and troubleshooting tools for SMTP, DNS, SPF, DKIM, DMARC, deliverability and email security.">
-<section class="home-hero"><div class="wrap home-hero-grid"><div class="home-intro"><p class="home-overline">EMAIL INFRASTRUCTURE, WITHOUT THE HAND-WAVING</p><h1>Figure out how email <span>actually works.</span></h1><p class="lead">Notes, references, runbooks and tools for the parts of email that usually turn into a DNS lookup, a message trace, or an RFC rabbit hole.</p><div class="home-actions"><a class="primary-action" href="/tools/domain-check/">Check a domain →</a><a class="secondary-action" href="/start/">Start from the beginning</a></div><p class="home-proof">{total} articles · free · vendor neutral · open source</p></div>
-<aside class="quick-panel"><p class="kicker">QUICK LOOKUP</p><h2>Already know what you need?</h2><div class="quick-links"><a href="/reference/dmarc/"><strong>DMARC</strong><span>Policy, alignment and reporting →</span></a><a href="/reference/spf/"><strong>SPF</strong><span>Mechanisms, limits and results →</span></a><a href="/reference/dkim/"><strong>DKIM</strong><span>Signing, selectors and keys →</span></a><a href="/reference/smtp/"><strong>SMTP</strong><span>Transport, commands and behavior →</span></a></div></aside></div></section>
-<section class="wrap home-work"><div class="home-section-head"><p class="kicker">START WITH THE PROBLEM</p><h2>What are you trying to do?</h2></div><div class="task-grid"><a href="/troubleshoot/"><strong>Something is broken</strong><span>Start with the symptom: bounced, delayed, spam, authentication or TLS.</span></a><a href="/tools/domain-check/"><strong>Check a domain</strong><span>Inspect public MX, SPF, DKIM, DMARC, MTA-STS and TLS-RPT configuration.</span></a><a href="/start/"><strong>Learn email end to end</strong><span>Follow DNS → SMTP → authentication → TLS → deliverability → security.</span></a><a href="/standards/"><strong>Find the standard</strong><span>Map the protocol you are working with back to its RFCs and registries.</span></a></div></section>
-<section class="home-library"><div class="wrap"><div class="home-section-head"><p class="kicker">THE LIBRARY</p><h2>Use the level of detail you need.</h2></div><div class="library-rows"><a href="/learn/"><span><b>Learn</b><small>{counts.Learn} guides</small></span><p>Concepts and architecture. Start here when you need the mental model before the syntax.</p><b>→</b></a><a href="/reference/"><span><b>Reference</b><small>{counts.Reference} references</small></span><p>Protocols, DNS records, headers, status codes, standards and exact terminology.</p><b>→</b></a><a href="/do/"><span><b>Do</b><small>{counts.Do} procedures</small></span><p>Runbooks for testing, deploying, migrating, monitoring and troubleshooting email.</p><b>→</b></a></div><div class="utility-links"><a href="/glossary/">Glossary →</a><a href="/topics/">Browse topics →</a><a href="/search/">Search everything →</a><a href="/tools/">Tools →</a></div></div></section>
-<section class="wrap home-note"><p><strong>Why this exists.</strong> Email is old, distributed and full of implementation details that get flattened into bad advice. howto.email keeps the protocol details close to the practical work: see the record, understand what it means, read the standard, make the change, and test again. <a href="/about/">About the project →</a></p></section>
+<Base title="howto.email — A practical guide to email" description="Learn how email works, look up a protocol, or troubleshoot a delivery problem. Free documentation and tools for email administrators.">
+<section class="wrap editorial-home">
+  <header class="editorial-intro">
+    <p class="editorial-label">A practical guide to email</p>
+    <h1>Email is a lot of moving parts.<br />Find the one you need.</h1>
+    <p>Mail servers, DNS records, authentication, and delivery problems. This is a collection of explanations, reference notes, and instructions for working with them.</p>
+    <a class="reading-link" href="/start/">New to email administration? Start here →</a>
+  </header>
+  <div class="home-desk">
+    <section class="home-main-list" aria-labelledby="working-on"><h2 id="working-on">What are you working on?</h2>
+      <a href="/troubleshoot/"><h3>Mail isn't arriving</h3><p>Work through a bounce, a delay, or a message that landed in spam.</p><span aria-hidden="true">→</span></a>
+      <a href="/tools/domain-check/"><h3>Check a domain's email setup</h3><p>Look up MX records and check SPF, DKIM, DMARC, and transport security.</p><span aria-hidden="true">→</span></a>
+      <a href="/tools/header-analyzer/"><h3>Follow a message's route</h3><p>Read message headers to see the hops, timing, and authentication results.</p><span aria-hidden="true">→</span></a>
+      <a href="/do/"><h3>Make a change</h3><p>Step-by-step instructions for configuration, testing, and migrations.</p><span aria-hidden="true">→</span></a>
+    </section>
+    <aside class="desk-reference"><h2>Keep these handy</h2><p>The references people often need while checking a record or reading a log.</p>
+      <ul><li><a href="/reference/smtp-status-codes/">SMTP response codes</a></li><li><a href="/reference/spf/">SPF records and lookups</a></li><li><a href="/reference/dkim/">DKIM signatures and keys</a></li><li><a href="/reference/dmarc/">DMARC policies and alignment</a></li><li><a href="/reference/mx/">MX records</a></li><li><a href="/glossary/">Email glossary</a></li></ul>
+      <a href="/reference/">All reference material →</a>
+    </aside>
+  </div>
+  <section class="browse-library"><h2>Browse the documentation</h2><div class="editorial-columns">
+    <div><h3><a href="/learn/">Learn</a></h3><p>How the pieces fit together, from sending a message to keeping a mail service running.</p><small>{count('Learn')} explanations</small></div>
+    <div><h3><a href="/reference/">Reference</a></h3><p>Record formats, protocol details, headers, and status codes to look up as you work.</p><small>{count('Reference')} references</small></div>
+    <div><h3><a href="/do/">How-to guides</a></h3><p>Instructions you can follow, with checks to help you tell whether a change worked.</p><small>{count('Do')} guides</small></div>
+  </div><p class="browse-topics">Looking for a particular subject? <a href="/topics/">Browse by topic</a> or <a href="/search/">search the documentation</a>.</p></section>
+  <section class="practice-note"><div><h2>Try what you've learned</h2><p>Practice questions explain the answers. The assessment gives you 40 questions and a certificate of completion if you pass.</p></div><a href="/quiz/">Practice and assessment →</a></section>
+  <p class="editorial-colophon">Free to read, vendor-neutral, and <a href="https://github.com/howtoemailoffical-create/howto-email">open source</a>. <a href="/about/">About howto.email</a></p>
+</section>
 </Base>
