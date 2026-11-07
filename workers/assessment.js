@@ -37,7 +37,27 @@ async function sign(key, payload) {
   const payload64 = b64(enc.encode(JSON.stringify(payload)));
   return payload64 + '.' + b64(await crypto.subtle.sign('HMAC', key, enc.encode(payload64)));
 }
+// Compact, stateless credentials keep the full SHA-256 signature.
+async function compactCredential(key, p) {
+  const bytes = new Uint8Array(21);
+  bytes.set(p.id.replace(/-/g, '').match(/../g).map(x => parseInt(x, 16)));
+  bytes[16] = p.score;
+  new DataView(bytes.buffer).setUint32(17, Math.floor(Date.parse(p.issued) / 1000));
+  const body = 'v3.' + b64(bytes);
+  return body + '.' + b64(await crypto.subtle.sign('HMAC', key, enc.encode(body)));
+}
 async function verify(key, token) {
+  if (typeof token === 'string' && /^v3\.[A-Za-z0-9_-]{28}\.[A-Za-z0-9_-]{43}$/.test(token)) {
+    try {
+      const [, body, signature] = token.split('.');
+      if (!await crypto.subtle.verify('HMAC', key, unb64(signature), enc.encode('v3.' + body))) return null;
+      const bytes = unb64(body);
+      const hex = Array.from(bytes.slice(0, 16), x => x.toString(16).padStart(2, '0')).join('');
+      return {kind: 'credential', version: 2, passed: true, total: 40, score: bytes[16],
+        id: hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20),
+        issued: new Date(new DataView(bytes.buffer).getUint32(17) * 1000).toISOString()};
+    } catch { return null; }
+  }
   if (typeof token !== 'string' || token.length > 15000 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) return null;
   const [body, sig] = token.split('.');
   try {
@@ -115,7 +135,7 @@ export default {async fetch(request, env) {
       typeof p.id === 'string' && /^[a-f\d-]{36}$/i.test(p.id) && Number.isInteger(p.score) &&
       p.score >= 32 && p.score <= 40 && p.total === 40 && Number.isFinite(issued) &&
       issued <= Date.now() + 60000 && issued > Date.UTC(2026, 0, 1));
-    return json({valid, credential: valid ? {id: p.id, score: p.score, total: p.total,
+    return json({valid, ...(valid ? {credentialToken: await compactCredential(key, p)} : {}), credential: valid ? {id: p.id, score: p.score, total: p.total,
       issued: p.issued, assessment: 'HowToEmail Email Knowledge Assessment'} : null});
   }
   if (!env.QUESTION_BANK) return json({error: 'Assessment question bank is not configured'}, 503);
@@ -185,7 +205,7 @@ export default {async fetch(request, env) {
     if (passed) {
       const credential = {kind: 'credential', version: 2, id: crypto.randomUUID(), score,
         total: 40, passed: true, issued: new Date().toISOString()};
-      result.credentialToken = await sign(key, credential);
+      result.credentialToken = await compactCredential(key, credential);
       result.credentialId = credential.id;
       result.issued = credential.issued;
     }

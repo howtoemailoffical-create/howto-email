@@ -4,10 +4,3 @@ dist/
 .env
 .env.*
 .DS_Store
-
-private-question-bank.json
-question-bank.json
-*.quiz-secret
-*.assessment-bank.json
-.dev.vars
-*.env.local

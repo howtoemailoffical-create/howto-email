@@ -134,7 +134,7 @@ $('finish').addEventListener('click',async()=>{
     $('score').textContent=r.score+' / '+r.total+' correct ('+r.percentage+'%). '+(r.passed?'Passed.':'Not passed. 32 correct answers are needed to pass.');
     $('credential').hidden=!r.passed;
     if(r.passed){
-      const url=new URL('/verify/',location.origin);url.hash='token='+encodeURIComponent(credential);
+      const url=new URL('/verify/',location.origin);url.searchParams.set('token',credential);
       $('verify').href=url.toString();
       $('linkedin').textContent='LinkedIn: add “HowToEmail Email Knowledge Assessment” under Licenses & certifications; issuing organization “HowToEmail”; credential ID '+credentialId+'. Paste your verification link as Credential URL.';
     }

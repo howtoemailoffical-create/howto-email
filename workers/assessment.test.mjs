@@ -139,3 +139,29 @@ test('a completed attempt rejects later sequential submissions without storing i
   assert.match(body.error, /already submitted/i);
   assert.ok([...redeemed.keys()].every(k => k.startsWith('assessment-redeemed-v2:') && k.length === 'assessment-redeemed-v2:'.length + 36));
 });
+
+test('compact LinkedIn links verify, resist tampering, and preserve legacy credentials', async () => {
+  const session = await data('start', {});
+  const result = await data('submit', {token: session.token, answers: correctAnswers(session)});
+  const url = new URL('/verify/', 'https://howto.email');
+  url.searchParams.set('token', result.credentialToken);
+  assert.ok(url.href.length < 150);
+  assert.equal(url.hash, '');
+  assert.match(result.credentialToken, /^v3\./);
+  const verified = await data('verify', {token: result.credentialToken});
+  assert.equal(verified.valid, true);
+  assert.equal(verified.credential.id, result.credentialId);
+  assert.equal(verified.credential.score, 40);
+  const parts = result.credentialToken.split('.');
+  const payload = Buffer.from(parts[1], 'base64url');
+  payload[16] = 32;
+  parts[1] = payload.toString('base64url');
+  assert.equal((await data('verify', {token: parts.join('.')})).valid, false);
+  const old = {kind:'credential', version:2, id:result.credentialId, score:40, total:40, passed:true, issued:result.issued};
+  const body = Buffer.from(JSON.stringify(old)).toString('base64url');
+  const legacy = body + '.' + createHmac('sha256', secret).update(body).digest('base64url');
+  const migrated = await data('verify', {token: legacy});
+  assert.equal(migrated.valid, true);
+  assert.equal((await data('verify', {token:migrated.credentialToken})).credential.id, old.id);
+  assert.equal((await data('verify', {token:result.credentialToken.slice(0,-5)})).valid, false);
+});
